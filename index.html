@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Élelmiszer-ellátásbiztonság – HU NUTS3 térkép</title>
+  <title>Élelmiszer-ellátásbiztonság – Index (NUTS3)</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     body { margin: 0; font-family: Arial, sans-serif; }
     #map { height: 100vh; }
+
     .panel {
       position: absolute;
       top: 10px; left: 10px;
@@ -17,22 +18,54 @@
       padding: 10px 12px;
       border: 1px solid #e5e5e5;
       border-radius: 10px;
-      max-width: 380px;
+      max-width: 420px;
       font-size: 14px;
       line-height: 1.35;
     }
-    .ok { color: #0a7; font-weight: 700; }
-    .err { color: #b00; font-weight: 700; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top: 8px; }
+    select { padding: 4px 6px; }
+
+    .legend {
+      position: absolute;
+      right: 10px; bottom: 10px;
+      z-index: 9999;
+      background: rgba(255,255,255,0.96);
+      padding: 10px 12px;
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.25;
+      min-width: 170px;
+    }
+    .legend .item { display:flex; align-items:center; gap:8px; margin-top:6px; }
+    .sw { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.15); }
+    .ok { color:#0a7; font-weight:700; }
+    .err { color:#b00; font-weight:700; }
     .small { font-size: 12px; color:#555; }
   </style>
 </head>
 <body>
 
-<div class="panel" id="panel">
-  <b>Valódi vármegye-szint (NUTS3) határok</b><br/>
-  Forrás: EU GISCO (NUTS, 60M, EPSG:4326).<br/>
-  Állapot: <span id="status">betöltés...</span><br/>
-  <span class="small">Kattints egy területre: megjelenik a neve.</span>
+<div class="panel">
+  <b>Élelmiszer-ellátásbiztonsági index (demo)</b><br/>
+  Határ: EU GISCO NUTS3 (HU).<br/>
+  Adat: <code>data/food_index.csv</code><br/>
+  Állapot: <span id="status">betöltés…</span>
+  <div class="row">
+    <label for="metric"><b>Mutató:</b></label>
+    <select id="metric">
+      <option value="index">Összesített index</option>
+      <option value="prod">Termelési komponens</option>
+      <option value="access">Hozzáférés komponens</option>
+      <option value="buffer">Tartalék/robosztusság komponens</option>
+    </select>
+  </div>
+  <div class="small">Kattints egy területre a részletekhez.</div>
+</div>
+
+<div class="legend" id="legend">
+  <b>Jelmagyarázat</b>
+  <div id="legendItems"></div>
 </div>
 
 <div id="map"></div>
@@ -46,28 +79,92 @@
     attribution: '&copy; OpenStreetMap'
   }).addTo(map);
 
+  var metricSelect = document.getElementById("metric");
+  var statusEl = document.getElementById("status");
+
+  var nutsLayer = null;
   var selectedLayer = null;
 
-  function baseStyle() {
-    return { color: "#333", weight: 1, fillColor: "#69b3a2", fillOpacity: 0.55 };
-  }
-  function hoverStyle() {
-    return { weight: 3, color: "#111", fillOpacity: 0.75 };
-  }
-  function selectedStyle() {
-    return { weight: 4, color: "#000", fillOpacity: 0.85 };
-  }
+  // CSV adatok: NUTS_ID -> {prod, access, buffer, index}
+  var indexByNutsId = {};
 
   function getName(props) {
-    return props.NAME_LATN || props.NUTS_NAME || props.name || props.NAME || props.nuts_name || "Ismeretlen terület";
+    return props.NAME_LATN || props.NUTS_NAME || "Terület";
+  }
+  function getNutsId(props) {
+    return props.NUTS_ID || "";
   }
 
-  function onEachFeature(feature, layer) {
-    var props = feature.properties || {};
-    var name = getName(props);
-    var nutsId = props.NUTS_ID || props.nuts_id || "";
+  function parseCSV(text) {
+    var lines = text.trim().split(/\r?\n/);
+    var header = lines[0].split(",").map(s => s.trim());
+    var out = [];
+    for (var i=1; i<lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      var cols = lines[i].split(",").map(s => s.trim());
+      var row = {};
+      for (var j=0; j<header.length; j++) row[header[j]] = cols[j];
+      out.push(row);
+    }
+    return out;
+  }
 
-    layer.bindPopup("<b>" + name + "</b><br/><span style='font-size:12px;color:#555'>NUTS_ID: " + nutsId + "</span>");
+  // Színezés: 5 sáv (0-20-40-60-80-100)
+  function getColor(v) {
+    if (v == null || isNaN(v)) return "#dddddd";
+    if (v < 20) return "#f7fbff";
+    if (v < 40) return "#deebf7";
+    if (v < 60) return "#c6dbef";
+    if (v < 80) return "#9ecae1";
+    return "#6baed6";
+  }
+
+  function updateLegend() {
+    var items = document.getElementById("legendItems");
+    var labels = [
+      {t:"0–19", c:getColor(0)},
+      {t:"20–39", c:getColor(20)},
+      {t:"40–59", c:getColor(40)},
+      {t:"60–79", c:getColor(60)},
+      {t:"80–100", c:getColor(80)},
+      {t:"nincs adat", c:"#dddddd"}
+    ];
+    items.innerHTML = "";
+    labels.forEach(function(x) {
+      var div = document.createElement("div");
+      div.className = "item";
+      var sw = document.createElement("span");
+      sw.className = "sw";
+      sw.style.background = x.c;
+      var tx = document.createElement("span");
+      tx.textContent = x.t;
+      div.appendChild(sw);
+      div.appendChild(tx);
+      items.appendChild(div);
+    });
+  }
+
+  function baseStyle(feature) {
+    var p = feature.properties || {};
+    var id = getNutsId(p);
+    var metric = metricSelect.value;
+    var rec = indexByNutsId[id];
+    var v = rec ? Number(rec[metric]) : null;
+    return {
+      color: "#333",
+      weight: 1,
+      fillColor: getColor(v),
+      fillOpacity: 0.6
+    };
+  }
+
+  function hoverStyle() { return { weight: 3, color: "#111", fillOpacity: 0.8 }; }
+  function selectedStyle() { return { weight: 4, color: "#000", fillOpacity: 0.9 }; }
+
+  function onEachFeature(feature, layer) {
+    var p = feature.properties || {};
+    var name = getName(p);
+    var id = getNutsId(p);
 
     layer.on("mouseover", function(e) {
       e.target.setStyle(hoverStyle());
@@ -75,52 +172,99 @@
     });
 
     layer.on("mouseout", function(e) {
-      if (selectedLayer !== e.target) e.target.setStyle(baseStyle());
+      if (selectedLayer !== e.target) {
+        if (nutsLayer) nutsLayer.resetStyle(e.target);
+      }
     });
 
     layer.on("click", function(e) {
-      if (selectedLayer && selectedLayer !== e.target) selectedLayer.setStyle(baseStyle());
+      if (selectedLayer && selectedLayer !== e.target) {
+        if (nutsLayer) nutsLayer.resetStyle(selectedLayer);
+      }
       selectedLayer = e.target;
       e.target.setStyle(selectedStyle());
       e.target.bringToFront();
-      e.target.openPopup();
+
+      var rec = indexByNutsId[id] || {};
+      var html =
+        "<b>" + name + "</b><br/>" +
+        "<span style='font-size:12px;color:#555'>NUTS_ID: " + id + "</span><hr style='border:none;border-top:1px solid #eee;margin:8px 0'/>" +
+        "<b>Index:</b> " + (rec.index ?? "n/a") + "<br/>" +
+        "<b>Prod:</b> " + (rec.prod ?? "n/a") + "<br/>" +
+        "<b>Access:</b> " + (rec.access ?? "n/a") + "<br/>" +
+        "<b>Buffer:</b> " + (rec.buffer ?? "n/a");
+
+      layer.bindPopup(html).openPopup();
     });
   }
 
-  // EU GISCO NUTS3 GeoJSON (2024, 60M, 4326, LEVL_3)
-  // Ha ez nálad valamiért CORS miatt nem menne, a következő lépésben letöltjük és a repóba tesszük.
-  var url = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson";
+  function renderLayer(huGeojson) {
+    if (nutsLayer) nutsLayer.remove();
 
-  fetch(url)
-    .then(function(r) {
-      if (!r.ok) throw new Error("HTTP " + r.status);
+    nutsLayer = L.geoJSON(huGeojson, {
+      style: baseStyle,
+      onEachFeature: onEachFeature
+    }).addTo(map);
+
+    try { map.fitBounds(nutsLayer.getBounds(), { padding: [20,20] }); } catch(e) {}
+  }
+
+  function refreshStyles() {
+    if (!nutsLayer) return;
+    nutsLayer.setStyle(baseStyle);
+    updateLegend();
+  }
+
+  metricSelect.addEventListener("change", function() {
+    refreshStyles();
+  });
+
+  updateLegend();
+
+  // 1) CSV betöltés
+  fetch("data/food_index.csv")
+    .then(r => {
+      if (!r.ok) throw new Error("CSV HTTP " + r.status);
+      return r.text();
+    })
+    .then(text => {
+      var rows = parseCSV(text);
+      rows.forEach(function(r) {
+        indexByNutsId[r.NUTS_ID] = {
+          prod: Number(r.prod),
+          access: Number(r.access),
+          buffer: Number(r.buffer),
+          index: Number(r.index)
+        };
+      });
+
+      // 2) NUTS3 HU határok betöltése (EU GISCO)
+      var url = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson";
+      return fetch(url);
+    })
+    .then(r => {
+      if (!r.ok) throw new Error("GISCO HTTP " + r.status);
       return r.json();
     })
-    .then(function(fc) {
-      // Magyarország szűrés: CNTR_CODE == "HU" vagy NUTS_ID "HU"-val kezdődik
+    .then(fc => {
       var hu = {
         type: "FeatureCollection",
         features: (fc.features || []).filter(function(f) {
           var p = f.properties || {};
-          var id = (p.NUTS_ID || p.nuts_id || "");
-          var cc = (p.CNTR_CODE || p.cntr_code || "");
+          var id = (p.NUTS_ID || "");
+          var cc = (p.CNTR_CODE || "");
           return cc === "HU" || (typeof id === "string" && id.startsWith("HU"));
         })
       };
 
-      var layer = L.geoJSON(hu, {
-        style: baseStyle,
-        onEachFeature: onEachFeature
-      }).addTo(map);
+      renderLayer(hu);
 
-      try { map.fitBounds(layer.getBounds(), { padding: [20, 20] }); } catch(e) {}
-
-      document.getElementById("status").innerHTML = "<span class='ok'>OK</span> (" + hu.features.length + " terület)";
+      statusEl.innerHTML = "<span class='ok'>OK</span> (HU területek: " + hu.features.length + ", CSV sorok: " + Object.keys(indexByNutsId).length + ")";
     })
-    .catch(function(err) {
+    .catch(err => {
       console.error(err);
-      document.getElementById("status").innerHTML =
-        "<span class='err'>HIBA</span> (nem tudtam betölteni az EU-s GeoJSON-t: " + err.message + ")";
+      statusEl.innerHTML = "<span class='err'>HIBA</span> " + err.message;
+      alert("Hiba: " + err.message);
     });
 </script>
 
