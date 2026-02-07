@@ -3,33 +3,36 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Élelmiszer-ellátásbiztonság térkép</title>
+  <title>Élelmiszer-ellátásbiztonság – HU NUTS3 térkép</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     body { margin: 0; font-family: Arial, sans-serif; }
     #map { height: 100vh; }
-    .hint {
+    .panel {
       position: absolute;
       top: 10px; left: 10px;
       z-index: 9999;
-      background: rgba(255,255,255,0.95);
+      background: rgba(255,255,255,0.96);
       padding: 10px 12px;
       border: 1px solid #e5e5e5;
       border-radius: 10px;
-      max-width: 360px;
+      max-width: 380px;
       font-size: 14px;
       line-height: 1.35;
     }
+    .ok { color: #0a7; font-weight: 700; }
+    .err { color: #b00; font-weight: 700; }
+    .small { font-size: 12px; color:#555; }
   </style>
 </head>
 <body>
 
-<div class="hint">
-  <b>Demo térkép</b><br/>
-  Most még 3 <i>teszt</i> poligon van (téglalap), ezért nem vármegye alakú.<br/>
-  Következő lépésben lecseréljük valódi vármegye/NUTS3 határra.<br/>
-  Tipp: vidd az egeret a zöld alakzatokra és kattints.
+<div class="panel" id="panel">
+  <b>Valódi vármegye-szint (NUTS3) határok</b><br/>
+  Forrás: EU GISCO (NUTS, 60M, EPSG:4326).<br/>
+  Állapot: <span id="status">betöltés...</span><br/>
+  <span class="small">Kattints egy területre: megjelenik a neve.</span>
 </div>
 
 <div id="map"></div>
@@ -37,10 +40,8 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-  // Térkép
   var map = L.map('map').setView([47.16, 19.5], 7);
 
-  // Alaptérkép
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap'
   }).addTo(map);
@@ -48,56 +49,37 @@
   var selectedLayer = null;
 
   function baseStyle() {
-    return {
-      color: "#333",
-      weight: 1,
-      fillColor: "#69b3a2",
-      fillOpacity: 0.55
-    };
+    return { color: "#333", weight: 1, fillColor: "#69b3a2", fillOpacity: 0.55 };
   }
-
   function hoverStyle() {
-    return {
-      weight: 3,
-      color: "#111",
-      fillOpacity: 0.75
-    };
+    return { weight: 3, color: "#111", fillOpacity: 0.75 };
+  }
+  function selectedStyle() {
+    return { weight: 4, color: "#000", fillOpacity: 0.85 };
   }
 
-  function selectedStyle() {
-    return {
-      weight: 4,
-      color: "#000",
-      fillOpacity: 0.85
-    };
+  function getName(props) {
+    return props.NAME_LATN || props.NUTS_NAME || props.name || props.NAME || props.nuts_name || "Ismeretlen terület";
   }
 
   function onEachFeature(feature, layer) {
-    var name = (feature.properties && feature.properties.name) ? feature.properties.name : "Terület";
+    var props = feature.properties || {};
+    var name = getName(props);
+    var nutsId = props.NUTS_ID || props.nuts_id || "";
 
-    // Popup tartalom (mindig ugyanaz, tuti)
-    layer.bindPopup("<b>" + name + "</b>");
+    layer.bindPopup("<b>" + name + "</b><br/><span style='font-size:12px;color:#555'>NUTS_ID: " + nutsId + "</span>");
 
-    // Hover kiemelés
     layer.on("mouseover", function(e) {
       e.target.setStyle(hoverStyle());
-      if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-        e.target.bringToFront();
-      }
+      e.target.bringToFront();
     });
 
-    // Hover vége: ha nem kiválasztott, vissza alapra
     layer.on("mouseout", function(e) {
-      if (selectedLayer !== e.target) {
-        e.target.setStyle(baseStyle());
-      }
+      if (selectedLayer !== e.target) e.target.setStyle(baseStyle());
     });
 
-    // Kattintás: kiválasztás + popup
     layer.on("click", function(e) {
-      if (selectedLayer && selectedLayer !== e.target) {
-        selectedLayer.setStyle(baseStyle());
-      }
+      if (selectedLayer && selectedLayer !== e.target) selectedLayer.setStyle(baseStyle());
       selectedLayer = e.target;
       e.target.setStyle(selectedStyle());
       e.target.bringToFront();
@@ -105,23 +87,40 @@
     });
   }
 
-  // GeoJSON betöltése
-  fetch('data/hu-counties.geojson')
-    .then(function(response) { return response.json(); })
-    .then(function(data) {
-      var geo = L.geoJSON(data, {
+  // EU GISCO NUTS3 GeoJSON (2024, 60M, 4326, LEVL_3)
+  // Ha ez nálad valamiért CORS miatt nem menne, a következő lépésben letöltjük és a repóba tesszük.
+  var url = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson";
+
+  fetch(url)
+    .then(function(r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(function(fc) {
+      // Magyarország szűrés: CNTR_CODE == "HU" vagy NUTS_ID "HU"-val kezdődik
+      var hu = {
+        type: "FeatureCollection",
+        features: (fc.features || []).filter(function(f) {
+          var p = f.properties || {};
+          var id = (p.NUTS_ID || p.nuts_id || "");
+          var cc = (p.CNTR_CODE || p.cntr_code || "");
+          return cc === "HU" || (typeof id === "string" && id.startsWith("HU"));
+        })
+      };
+
+      var layer = L.geoJSON(hu, {
         style: baseStyle,
         onEachFeature: onEachFeature
       }).addTo(map);
 
-      // Rázoomolunk az adatra
-      try {
-        map.fitBounds(geo.getBounds(), { padding: [20, 20] });
-      } catch (e) {}
+      try { map.fitBounds(layer.getBounds(), { padding: [20, 20] }); } catch(e) {}
+
+      document.getElementById("status").innerHTML = "<span class='ok'>OK</span> (" + hu.features.length + " terület)";
     })
     .catch(function(err) {
-      alert("Hiba a GeoJSON betöltésénél: " + err.message);
       console.error(err);
+      document.getElementById("status").innerHTML =
+        "<span class='err'>HIBA</span> (nem tudtam betölteni az EU-s GeoJSON-t: " + err.message + ")";
     });
 </script>
 
