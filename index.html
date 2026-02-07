@@ -5,48 +5,123 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Élelmiszer-ellátásbiztonság térkép</title>
 
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     body { margin: 0; font-family: Arial, sans-serif; }
     #map { height: 100vh; }
+    .hint {
+      position: absolute;
+      top: 10px; left: 10px;
+      z-index: 9999;
+      background: rgba(255,255,255,0.95);
+      padding: 10px 12px;
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+      max-width: 360px;
+      font-size: 14px;
+      line-height: 1.35;
+    }
   </style>
 </head>
 <body>
+
+<div class="hint">
+  <b>Demo térkép</b><br/>
+  Most még 3 <i>teszt</i> poligon van (téglalap), ezért nem vármegye alakú.<br/>
+  Következő lépésben lecseréljük valódi vármegye/NUTS3 határra.<br/>
+  Tipp: vidd az egeret a zöld alakzatokra és kattints.
+</div>
 
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-  // térkép
+  // Térkép
   var map = L.map('map').setView([47.16, 19.5], 7);
 
-  // alaptérkép
+  // Alaptérkép
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap'
   }).addTo(map);
 
+  var selectedLayer = null;
+
+  function baseStyle() {
+    return {
+      color: "#333",
+      weight: 1,
+      fillColor: "#69b3a2",
+      fillOpacity: 0.55
+    };
+  }
+
+  function hoverStyle() {
+    return {
+      weight: 3,
+      color: "#111",
+      fillOpacity: 0.75
+    };
+  }
+
+  function selectedStyle() {
+    return {
+      weight: 4,
+      color: "#000",
+      fillOpacity: 0.85
+    };
+  }
+
+  function onEachFeature(feature, layer) {
+    var name = (feature.properties && feature.properties.name) ? feature.properties.name : "Terület";
+
+    // Popup tartalom (mindig ugyanaz, tuti)
+    layer.bindPopup("<b>" + name + "</b>");
+
+    // Hover kiemelés
+    layer.on("mouseover", function(e) {
+      e.target.setStyle(hoverStyle());
+      if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+        e.target.bringToFront();
+      }
+    });
+
+    // Hover vége: ha nem kiválasztott, vissza alapra
+    layer.on("mouseout", function(e) {
+      if (selectedLayer !== e.target) {
+        e.target.setStyle(baseStyle());
+      }
+    });
+
+    // Kattintás: kiválasztás + popup
+    layer.on("click", function(e) {
+      if (selectedLayer && selectedLayer !== e.target) {
+        selectedLayer.setStyle(baseStyle());
+      }
+      selectedLayer = e.target;
+      e.target.setStyle(selectedStyle());
+      e.target.bringToFront();
+      e.target.openPopup();
+    });
+  }
+
   // GeoJSON betöltése
   fetch('data/hu-counties.geojson')
-    .then(function(response) {
-      return response.json();
-    })
+    .then(function(response) { return response.json(); })
     .then(function(data) {
-      L.geoJSON(data, {
-        style: {
-          color: "#333",
-          weight: 1,
-          fillColor: "#69b3a2",
-          fillOpacity: 0.6
-        },
-        onEachFeature: function(feature, layer) {
-          layer.bindPopup(feature.properties.name);
-        }
+      var geo = L.geoJSON(data, {
+        style: baseStyle,
+        onEachFeature: onEachFeature
       }).addTo(map);
+
+      // Rázoomolunk az adatra
+      try {
+        map.fitBounds(geo.getBounds(), { padding: [20, 20] });
+      } catch (e) {}
+    })
+    .catch(function(err) {
+      alert("Hiba a GeoJSON betöltésénél: " + err.message);
+      console.error(err);
     });
 </script>
 
