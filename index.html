@@ -18,7 +18,7 @@
       padding: 10px 12px;
       border: 1px solid #e5e5e5;
       border-radius: 10px;
-      max-width: 420px;
+      max-width: 440px;
       font-size: 14px;
       line-height: 1.35;
     }
@@ -35,22 +35,24 @@
       border-radius: 10px;
       font-size: 13px;
       line-height: 1.25;
-      min-width: 170px;
+      min-width: 190px;
     }
     .legend .item { display:flex; align-items:center; gap:8px; margin-top:6px; }
     .sw { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.15); }
     .ok { color:#0a7; font-weight:700; }
     .err { color:#b00; font-weight:700; }
     .small { font-size: 12px; color:#555; }
+    code { font-size: 12px; }
   </style>
 </head>
 <body>
 
 <div class="panel">
-  <b>Élelmiszer-ellátásbiztonsági index (demo)</b><br/>
-  Határ: EU GISCO NUTS3 (HU).<br/>
-  Adat: <code>data/food_index.csv</code><br/>
+  <b>Élelmiszer-ellátásbiztonsági index</b><br/>
+  Határ: EU GISCO NUTS3 (HU). Adat: <code>data/food_index.csv</code><br/>
+  Súlyok: <code>index = 0.45·prod + 0.35·access + 0.20·buffer</code><br/>
   Állapot: <span id="status">betöltés…</span>
+
   <div class="row">
     <label for="metric"><b>Mutató:</b></label>
     <select id="metric">
@@ -63,7 +65,7 @@
   <div class="small">Kattints egy területre a részletekhez.</div>
 </div>
 
-<div class="legend" id="legend">
+<div class="legend">
   <b>Jelmagyarázat</b>
   <div id="legendItems"></div>
 </div>
@@ -74,7 +76,6 @@
 
 <script>
   var map = L.map('map').setView([47.16, 19.5], 7);
-
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap'
   }).addTo(map);
@@ -85,8 +86,18 @@
   var nutsLayer = null;
   var selectedLayer = null;
 
-  // CSV adatok: NUTS_ID -> {prod, access, buffer, index}
+  // NUTS_ID -> {prod, access, buffer, index}
   var indexByNutsId = {};
+
+  // Súlyok
+  var W_PROD = 0.45;
+  var W_ACCESS = 0.35;
+  var W_BUFFER = 0.20;
+
+  function round1(x) {
+    if (x == null || isNaN(x)) return null;
+    return Math.round(x * 10) / 10;
+  }
 
   function getName(props) {
     return props.NAME_LATN || props.NUTS_NAME || "Terület";
@@ -109,7 +120,7 @@
     return out;
   }
 
-  // Színezés: 5 sáv (0-20-40-60-80-100)
+  // 5 sáv (0-20-40-60-80-100)
   function getColor(v) {
     if (v == null || isNaN(v)) return "#dddddd";
     if (v < 20) return "#f7fbff";
@@ -229,16 +240,24 @@
     })
     .then(text => {
       var rows = parseCSV(text);
+
       rows.forEach(function(r) {
+        var prod = Number(r.prod);
+        var access = Number(r.access);
+        var buffer = Number(r.buffer);
+
+        // index automatikus számítás
+        var idx = round1(W_PROD * prod + W_ACCESS * access + W_BUFFER * buffer);
+
         indexByNutsId[r.NUTS_ID] = {
-          prod: Number(r.prod),
-          access: Number(r.access),
-          buffer: Number(r.buffer),
-          index: Number(r.index)
+          prod: round1(prod),
+          access: round1(access),
+          buffer: round1(buffer),
+          index: idx
         };
       });
 
-      // 2) NUTS3 HU határok betöltése (EU GISCO)
+      // 2) HU NUTS3 határok betöltése (EU GISCO)
       var url = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson";
       return fetch(url);
     })
@@ -258,8 +277,7 @@
       };
 
       renderLayer(hu);
-
-      statusEl.innerHTML = "<span class='ok'>OK</span> (HU területek: " + hu.features.length + ", CSV sorok: " + Object.keys(indexByNutsId).length + ")";
+      statusEl.innerHTML = "<span class='ok'>OK</span> (index automatikusan számolva)";
     })
     .catch(err => {
       console.error(err);
