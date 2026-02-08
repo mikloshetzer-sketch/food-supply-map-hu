@@ -1,0 +1,130 @@
+{
+  "type": "FeatureCollection",
+  "name": "logistics_food_hu_strategic_v1",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hungrana (Szabadegyháza) – kukorica-feldolgozás",
+        "type": "processing",
+        "category": "corn starch / isoglucose / ethanol",
+        "importance": "national",
+        "source": "ICPDR Emission Inventory Annex (Hungrana Szabadegyháza DMS 47 4 42 / 18 41 11)"
+      },
+      "geometry": { "type": "Point", "coordinates": [18.686389, 47.078333] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "VIRESOL (Visonta) – gabonafeldolgozó/keményítő",
+        "type": "processing",
+        "category": "starch processing",
+        "importance": "national",
+        "source": "Maptons listing (lat 47.7945644, lon 20.0634693)"
+      },
+      "geometry": { "type": "Point", "coordinates": [20.0634693, 47.7945644] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bunge (Martfű) – olajosmag feldolgozás és palackozás (proxy koordináta: Martfű központ)",
+        "type": "processing",
+        "category": "oilseeds / edible oil / feed",
+        "importance": "national",
+        "note": "A koordináta város-középpont, később pontosítható telephelyre.",
+        "source": "Latitude.to Martfű city coordinates"
+      },
+      "geometry": { "type": "Point", "coordinates": [20.283733, 47.016867] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BILK / Rail Cargo Terminal környéke (Európa u. 6 környezet) – intermodális csomópont",
+        "type": "logistics_hub",
+        "category": "intermodal terminal",
+        "importance": "national",
+        "note": "Proxy pont a BILK területén (Európa u. 6). Később finomítható RCT-BILK kapura/terminálra.",
+        "source": "Maptons (Európa u. 6) coordinate listing"
+      },
+      "geometry": { "type": "Point", "coordinates": [19.1215479, 47.3764186] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Budapesti Szabadkikötő / Freeport of Budapest (Csepel)",
+        "type": "logistics_hub",
+        "category": "river port",
+        "importance": "national",
+        "source": "Wikidata-derived page (coordinate location 47.4637, 19.0752)"
+      },
+      "geometry": { "type": "Point", "coordinates": [19.0752, 47.4637] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MAHART Gönyű kikötő",
+        "type": "logistics_hub",
+        "category": "river port",
+        "importance": "regional",
+        "source": "MAHART Ports – vidéki kikötők coords"
+      },
+      "geometry": { "type": "Point", "coordinates": [17.824483, 47.738831] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MAHART Baja kikötő",
+        "type": "logistics_hub",
+        "category": "river port",
+        "importance": "regional",
+        "source": "MAHART Ports – vidéki kikötők coords"
+      },
+      "geometry": { "type": "Point", "coordinates": [18.92599, 46.18058] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MAHART Mohács kikötő",
+        "type": "logistics_hub",
+        "category": "river port",
+        "importance": "regional",
+        "source": "MAHART Ports Mohács page coords"
+      },
+      "geometry": { "type": "Point", "coordinates": [18.69498, 45.99241] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Budapesti Nagybani Piac (Nagykőrösi út 353) – nagyker frissáru csomópont",
+        "type": "distribution",
+        "category": "wholesale market",
+        "importance": "national",
+        "source": "aTudakozó map popup for Nagykőrösi út 353 (lat 47.432527 lon 19.149252)"
+      },
+      "geometry": { "type": "Point", "coordinates": [19.149252, 47.432527] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Szegedi Zöldség és Gyümölcs Nagybani Piac",
+        "type": "distribution",
+        "category": "wholesale market",
+        "importance": "regional",
+        "source": "Maptons listing (lat 46.2907570, lon 20.0809190)"
+      },
+      "geometry": { "type": "Point", "coordinates": [20.080919, 46.290757] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Gyermelyi (Gyermely) – tészta/malom (proxy koordináta: Gyermely település)",
+        "type": "processing",
+        "category": "milling / pasta",
+        "importance": "regional",
+        "note": "Koordináta település-középpont; telephelyre később pontosítható.",
+        "source": "Maptons (Gyermely city coordinates)"
+      },
+      "geometry": { "type": "Point", "coordinates": [18.6417637, 47.5917949] }
+    }
+  ]
+}
