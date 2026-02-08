@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ellátásbiztonsági index – HU (kukorica + búza + Eurostat)</title>
+  <title>Ellátásbiztonsági index – HU (2-termény + baseline buffer)</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -20,7 +20,7 @@
       padding: 10px 12px;
       border: 1px solid #ddd;
       border-radius: 12px;
-      max-width: 540px;
+      max-width: 560px;
       font-size: 13px;
       line-height: 1.25;
       box-shadow: 0 3px 10px rgba(0,0,0,0.12);
@@ -69,14 +69,14 @@
 
 <div class="panel">
   <b>Ellátásbiztonsági index</b>
-  <span class="badge">VERZIÓ: MAP-FIX-2CROPS</span>
+  <span class="badge">VERZIÓ: MAP-V5-PROD2-BUFFERBASE</span>
 
   <div class="row">
     <label><b>Mutató:</b></label>
     <select id="metric">
       <option value="index">Index</option>
-      <option value="prod">Termelés (kukorica)</option>
-      <option value="buffer">Tartalék (kukorica+búza)</option>
+      <option value="prod">Termelés (kukorica+búza átlag)</option>
+      <option value="buffer">Tartalék (baseline)</option>
       <option value="access">Hozzáférés (népsűrűség)</option>
     </select>
   </div>
@@ -158,22 +158,29 @@
     return "#6baed6";
   }
 
-  function parseCSVRows(text){
+  function parseCSV(text){
     const lines = text.trim().split(/\r?\n/);
+    const header = lines[0].split(",").map(x=>x.trim());
     const rows = [];
     for (let i=1;i<lines.length;i++){
       const line = lines[i].trim();
       if (!line) continue;
-      rows.push(line.split(",").map(x=>x.trim()));
+      const cols = line.split(",").map(x=>x.trim());
+      const obj = {};
+      header.forEach((h,idx)=> obj[h] = cols[idx]);
+      rows.push(obj);
     }
     return rows;
   }
 
   function parseMappingCSV(text){
-    const rows = parseCSVRows(text);
-    const m = {};
-    rows.forEach(c => { m[c[0]] = c[1]; });
-    return m;
+    const lines = text.trim().split(/\r?\n/);
+    const out = {};
+    for (let i=1;i<lines.length;i++){
+      const [nuts,ksh] = lines[i].split(",").map(x=>x.trim());
+      if (nuts && ksh) out[nuts] = ksh;
+    }
+    return out;
   }
 
   function normKey(s){
@@ -237,7 +244,6 @@
     const grid = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
     if (!grid || !grid.length) return { valuesByName: {}, reason: "üres munkalap" };
 
-    // 2024 oszlop keresése
     let col2024 = -1, headerRowIdx = -1;
     for (let i=0;i<Math.min(120,grid.length);i++){
       const row = grid[i] || [];
@@ -247,7 +253,6 @@
     }
     if (col2024 === -1) return { valuesByName: {}, reason: "nem találom a 2024 oszlopot" };
 
-    // a táblarész kezdete: ahol a sorokban már vármegye nevek vannak
     const valuesByName = {};
     for (let i = headerRowIdx + 1; i < grid.length; i++){
       const row = grid[i] || [];
@@ -313,14 +318,28 @@
   }
 
   async function loadAllData(){
-    // 1) mapping NUTS_ID -> KSH vármegye név
+    // baseline (food_index.csv) -> buffer oszlop
+    const foodText = await fetch("data/food_index.csv", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("food_index.csv HTTP " + r.status);
+      return r.text();
+    });
+    const foodRows = parseCSV(foodText);
+    const baselineByNuts = {};
+    foodRows.forEach(r=>{
+      // elvárt oszlopok: NUTS_ID,prod,access,buffer
+      const id = r["NUTS_ID"];
+      const b = Number(r["buffer"]);
+      if (id) baselineByNuts[id] = Number.isFinite(b) ? b : null;
+    });
+
+    // mapping NUTS_ID -> KSH vármegye név
     const mapText = await fetch("data/nuts3_to_ksh_county.csv", { cache:"no-store" }).then(r=>{
       if(!r.ok) throw new Error("nuts3_to_ksh_county.csv HTTP " + r.status);
       return r.text();
     });
     const nutsToKsh = parseMappingCSV(mapText);
 
-    // 2) kukorica excel
+    // kukorica excel
     const cornAB = await fetch("data/kukoricatermesatlag.xlsx", { cache:"no-store" }).then(r=>{
       if(!r.ok) throw new Error("kukoricatermesatlag.xlsx HTTP " + r.status);
       return r.arrayBuffer();
@@ -330,7 +349,7 @@
     if (!Object.keys(cornEx.valuesByName).length) throw new Error("Kukorica Excel kiolvasás sikertelen: " + cornEx.reason);
     const cornScaled = scaleTo0_100(cornEx.valuesByName);
 
-    // 3) búza excel
+    // búza excel
     const wheatAB = await fetch("data/buzatermesatlag.xlsx", { cache:"no-store" }).then(r=>{
       if(!r.ok) throw new Error("buzatermesatlag.xlsx HTTP " + r.status);
       return r.arrayBuffer();
@@ -340,7 +359,7 @@
     if (!Object.keys(wheatEx.valuesByName).length) throw new Error("Búza Excel kiolvasás sikertelen: " + wheatEx.reason);
     const wheatScaled = scaleTo0_100(wheatEx.valuesByName);
 
-    // 4) Eurostat access (népsűrűség) – lastTimePeriod=1
+    // Eurostat access (népsűrűség)
     const base = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/DEMO_R_D3DENS";
     const euroUrl = base + "?lang=EN&format=JSON&freq=A&unit=PER_KM2&lastTimePeriod=1&geo=HU110&geo=HU120&geo=HU211&geo=HU212&geo=HU213&geo=HU221&geo=HU222&geo=HU223&geo=HU231&geo=HU232&geo=HU233&geo=HU311&geo=HU312&geo=HU313&geo=HU321&geo=HU322&geo=HU323&geo=HU331&geo=HU332&geo=HU333";
     const euroJson = await fetch(euroUrl, { cache:"no-store" }).then(r=>{
@@ -352,9 +371,9 @@
     const densRaw = parseJsonStatGeoValues(euroJson);
     const densScaled = scaleTo0_100(densRaw);
 
-    // 5) összerakás NUTS_ID kulcson
+    // összerakás NUTS_ID kulcson
     rawByNutsId = {};
-    let prodCount = 0, wheatCount = 0, accessCount = 0, bufferCount = 0;
+    let prodCount = 0, accessCount = 0, bufferCount = 0;
 
     Object.keys(nutsToKsh).forEach(nutsId=>{
       const kshName = nutsToKsh[nutsId];
@@ -362,38 +381,34 @@
       const corn = cornScaled.scaled[normKey(kshName)];
       const wheat = wheatScaled.scaled[normKey(kshName)];
       const access = densScaled.scaled[nutsId];
+      const baselineBuffer = (nutsId in baselineByNuts) ? baselineByNuts[nutsId] : null;
 
-      // Budapest: nincs termelési adat (szándékosan)
-      if (nutsId === "HU110") {
-        rawByNutsId[nutsId] = { prod: null, buffer: null, access: (access != null ? Number(access) : null) };
-        if (access != null) accessCount++;
-        return;
-      }
+      // PROD = átlag(kukorica, búza)
+      const prod =
+        (corn != null && wheat != null)
+          ? Math.round(((Number(corn)+Number(wheat))/2)*10)/10
+          : null;
 
-      const prod = (corn != null ? Number(corn) : null);
-      const buf = (corn != null && wheat != null) ? Math.round(((Number(corn)+Number(wheat))/2)*10)/10 : null;
+      // Budapest: PROD szándékosan null
+      const finalProd = (nutsId === "HU110") ? null : prod;
 
       rawByNutsId[nutsId] = {
-        prod: prod,
-        buffer: buf,
-        access: (access != null ? Number(access) : null)
+        prod: finalProd,
+        access: (access != null ? Number(access) : null),
+        buffer: (baselineBuffer != null ? Number(baselineBuffer) : null)
       };
 
-      if (prod != null) prodCount++;
-      if (wheat != null) wheatCount++;
-      if (buf != null) bufferCount++;
-      if (access != null) accessCount++;
+      if (finalProd != null) prodCount++;
+      if (rawByNutsId[nutsId].access != null) accessCount++;
+      if (rawByNutsId[nutsId].buffer != null) bufferCount++;
     });
 
     computeAll();
 
     return {
       prodCount,
-      wheatCount,
       bufferCount,
       accessCount,
-      cornMinMax: [cornScaled.min, cornScaled.max],
-      wheatMinMax: [wheatScaled.min, wheatScaled.max],
       densMinMax: [densScaled.min, densScaled.max]
     };
   }
@@ -403,7 +418,7 @@
       setStatus("betöltés…");
       setSources("");
 
-      // GeoJSON HU NUTS3
+      // HU NUTS3 GeoJSON
       const nutsUrl = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson";
       const fc = await fetch(nutsUrl, { cache:"no-store" }).then(r=>{
         if(!r.ok) throw new Error("GISCO HTTP " + r.status);
@@ -424,8 +439,8 @@
               "<b>"+name+"</b><br><span style='font-size:12px;color:#555'>"+id+"</span>" +
               "<hr style='border:none;border-top:1px solid #eee;margin:8px 0'/>" +
               "<b>Index:</b> " + (d?d.index:"n/a") + "<br>" +
-              "<b>Prod (kukorica):</b> " + (d?d.prod:"n/a") + "<br>" +
-              "<b>Buffer (kukorica+búza):</b> " + (d?d.buffer:"n/a") + "<br>" +
+              "<b>Prod (kuk+búza):</b> " + (d?d.prod:"n/a") + "<br>" +
+              "<b>Buffer (baseline):</b> " + (d?d.buffer:"n/a") + "<br>" +
               "<b>Access (népsűrűség):</b> " + (d?d.access:"n/a");
             layer.bindPopup(html).openPopup();
           });
@@ -435,14 +450,13 @@
       map.fitBounds(nutsLayer.getBounds(), { padding:[20,20] });
 
       setStatus(
-        "<span class='ok'>OK</span> · kukorica: "+info.prodCount+
-        " · búza: "+info.wheatCount+
-        " · buffer: "+info.bufferCount+
+        "<span class='ok'>OK</span> · prod (kuk+búza): "+info.prodCount+
+        " · buffer (baseline): "+info.bufferCount+
         " · access: "+info.accessCount+
         " · népsűrűség ("+euroYear+") min/max: "+info.densMinMax[0]+"/"+info.densMinMax[1]
       );
 
-      setSources("Források: KSH termésátlag (kukorica, búza – 2024) · Eurostat DEMO_R_D3DENS ("+euroYear+")");
+      setSources("Források: KSH termésátlag (kukorica+búza – 2024) · baseline: food_index.csv · Eurostat DEMO_R_D3DENS ("+euroYear+")");
 
     } catch (e) {
       console.error(e);
