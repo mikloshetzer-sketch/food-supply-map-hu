@@ -55,7 +55,7 @@
     .srow label { width: 60px; font-weight: 700; font-size: 12px; }
     .srow input[type="range"] { width: 170px; }
     .val { width: 44px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
-    .small { font-size: 11px; color:#444; margin-top: 6px; }
+    .small { font-size: 11px; color:#444; margin-top: 6px; word-break: break-all; }
 
     .legend {
       position: absolute;
@@ -82,7 +82,7 @@
 
 <div class="panel">
   <b>Ellátásbiztonsági index</b>
-  <span class="badge">VERZIÓ: MAP-V2</span>
+  <span class="badge">VERZIÓ: MAP-V3</span>
 
   <div class="row">
     <label><b>Mutató:</b></label>
@@ -130,7 +130,7 @@
     Excel: <code>data/kukoricatermesatlag.xlsx</code><br>
     Mapping: <code>data/nuts3_to_ksh_county.csv</code><br>
     Baseline: <code>data/food_index.csv</code><br>
-    Eurostat: <code>DEMO_R_D3DENS</code> (2024)
+    Eurostat: <code>DEMO_R_D3DENS</code> (freq=A, unit=PER_KM2, 2024) :contentReference[oaicite:1]{index=1}
   </div>
 </div>
 
@@ -173,7 +173,7 @@
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
 
   let nutsLayer = null;
-  let rawByNutsId = {};   // { prod, access, buffer } 0..100 (access/prod később felülírva)
+  let rawByNutsId = {};   // { prod, access, buffer } 0..100
   let calcByNutsId = {};  // + index
 
   function getColor(v){
@@ -220,8 +220,8 @@
   function readWeights(){ return { wp:Number(wProdEl.value)/100, wa:Number(wAccessEl.value)/100, wb:Number(wBufferEl.value)/100 }; }
   function normalize(w){
     const s = w.wp + w.wa + w.wb;
-    if (s <= 0) return {wp:0.45, wa:0.35, wb:0.20, rawSum:0};
-    return {wp:w.wp/s, wa:w.wa/s, wb:w.wb/s, rawSum:s};
+    if (s <= 0) return {wp:0.45, wa:0.35, wb:0.20};
+    return {wp:w.wp/s, wa:w.wa/s, wb:w.wb/s};
   }
 
   function updateWeightUI(){
@@ -325,74 +325,57 @@
     return { scaled, min, max };
   }
 
-  // ---- Eurostat JSON-stat parse (minimál) ----
-  function parseEurostatJsonStatToGeoValue(json){
-    // várható dim id: ["freq","unit","geo","time"] (példa a guide-ban) :contentReference[oaicite:1]{index=1}
-    const dimIds = json.id || (json.dimension && json.dimension.id) || null;
-    if (!dimIds) throw new Error("Eurostat: hiányzó dimenzió struktúra");
-
+  // JSON-stat -> geo->value (robosztus, dim-pozícióval)
+  function parseJsonStatGeoValues(json){
+    const ids = json.id;
+    const sizes = json.size;
     const dim = json.dimension;
-    const sizes = json.size || (json.dimension && json.dimension.size) || null;
-    const values = json.value;
-    if (!dim || !values || !sizes) throw new Error("Eurostat: hiányzó value/dimension/size");
+    const vals = json.value;
+    if (!ids || !sizes || !dim || !vals) throw new Error("Eurostat: hibás JSON-stat");
 
-    const geoPos = dimIds.indexOf("geo");
-    if (geoPos === -1) throw new Error("Eurostat: nincs 'geo' dimenzió");
+    const geoPos = ids.indexOf("geo");
+    if (geoPos === -1) throw new Error("Eurostat: nincs geo dim");
 
-    // category index list: geo codes in order
+    const mult = [];
+    let prod = 1;
+    for (let i = sizes.length - 1; i >= 0; i--) { mult[i] = prod; prod *= sizes[i]; }
+
+    // geo codes sorrend
     const geoIndexObj = dim.geo.category.index;
     const geoCodes = Array.isArray(geoIndexObj)
       ? geoIndexObj
       : Object.keys(geoIndexObj).sort((a,b)=>geoIndexObj[a]-geoIndexObj[b]);
 
-    // multipliers for linear index
-    const mult = [];
-    let prod = 1;
-    for (let i = sizes.length - 1; i >= 0; i--) {
-      mult[i] = prod;
-      prod *= sizes[i];
-    }
-
-    // assume other dims size 1 (we filter time=2024 and only HU geos), so value array aligns
-    // We map each geo position to value by setting other dims index=0.
     const out = {};
     for (let g=0; g<geoCodes.length; g++){
       const coords = new Array(sizes.length).fill(0);
       coords[geoPos] = g;
+
       let idx = 0;
       for (let i=0;i<coords.length;i++) idx += coords[i]*mult[i];
-      const v = values[idx];
+
+      const v = vals[idx];
       if (v != null && Number.isFinite(Number(v))) out[geoCodes[g]] = Number(v);
     }
     return out;
   }
 
-  async function loadAllDataAndBuild(){
-    // 0) HU geókódok (a saját NUTS listád)
+  async function loadAll(){
     const NUTS = [
       "HU110","HU120","HU211","HU212","HU213","HU221","HU222","HU223","HU231","HU232","HU233",
       "HU311","HU312","HU313","HU321","HU322","HU323","HU331","HU332","HU333"
     ];
 
-    // 1) baseline (buffer + fallback access/prod)
-    const csvText = await fetch("data/food_index.csv", { cache:"no-store" }).then(r=>{
-      if(!r.ok) throw new Error("food_index.csv HTTP " + r.status);
-      return r.text();
-    });
+    // baseline
+    const csvText = await fetch("data/food_index.csv", { cache:"no-store" }).then(r=>r.text());
     rawByNutsId = parseFoodIndexCSV(csvText);
 
-    // 2) mapping (prod Excelhez)
-    const mapText = await fetch("data/nuts3_to_ksh_county.csv", { cache:"no-store" }).then(r=>{
-      if(!r.ok) throw new Error("nuts3_to_ksh_county.csv HTTP " + r.status);
-      return r.text();
-    });
+    // mapping
+    const mapText = await fetch("data/nuts3_to_ksh_county.csv", { cache:"no-store" }).then(r=>r.text());
     const nutsToKsh = parseMappingCSV(mapText);
 
-    // 3) KSH Excel -> prod (0..100)
-    const ab = await fetch("data/kukoricatermesatlag.xlsx", { cache:"no-store" }).then(r=>{
-      if(!r.ok) throw new Error("kukoricatermesatlag.xlsx HTTP " + r.status);
-      return r.arrayBuffer();
-    });
+    // KSH Excel -> prod
+    const ab = await fetch("data/kukoricatermesatlag.xlsx", { cache:"no-store" }).then(r=>r.arrayBuffer());
     const wb = XLSX.read(ab, { type:"array" });
     const ex = extractCornYield2024FromWorkbook(wb);
     if (!Object.keys(ex.valuesByName).length) throw new Error("KSH Excel kiolvasás sikertelen: " + ex.reason);
@@ -401,25 +384,21 @@
     let prodUpdated = 0;
     Object.keys(nutsToKsh).forEach(nutsId=>{
       const kshName = nutsToKsh[nutsId];
-      const prod = cornScaled.scaled[normKey(kshName)];
+      const prodVal = cornScaled.scaled[normKey(kshName)];
 
-      if (nutsId === "HU110") {
-        if (rawByNutsId[nutsId]) rawByNutsId[nutsId].prod = null; // Budapest: nincs kukorica
-        return;
-      }
-      if (prod != null && rawByNutsId[nutsId]) {
-        rawByNutsId[nutsId].prod = Number(prod);
-        prodUpdated++;
-      }
+      if (nutsId === "HU110") { if (rawByNutsId[nutsId]) rawByNutsId[nutsId].prod = null; return; }
+      if (prodVal != null && rawByNutsId[nutsId]) { rawByNutsId[nutsId].prod = Number(prodVal); prodUpdated++; }
     });
 
-    // 4) Eurostat -> access (népsűrűség, 2024) dataset: DEMO_R_D3DENS :contentReference[oaicite:2]{index=2}
+    // Eurostat (FIX: freq + unit + geoLevel) :contentReference[oaicite:2]{index=2}
     const base = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/DEMO_R_D3DENS";
     const qs = [
       "lang=EN",
       "format=JSON",
+      "freq=A",
+      "unit=PER_KM2",
+      "geoLevel=nuts3",
       "time=2024",
-      // több geo param: geo=HU110&geo=...
       ...NUTS.map(g => "geo=" + encodeURIComponent(g))
     ].join("&");
     const euroUrl = base + "?" + qs;
@@ -429,24 +408,21 @@
       return r.json();
     });
 
-    const densityByGeo = parseEurostatJsonStatToGeoValue(euroJson);
-    const accessScaled = scaleMapTo0_100(densityByGeo);
+    const densRaw = parseJsonStatGeoValues(euroJson);
+    const accessScaled = scaleMapTo0_100(densRaw);
 
     let accessUpdated = 0;
     NUTS.forEach(id=>{
       const a = accessScaled.scaled[id];
-      if (a != null && rawByNutsId[id]) {
-        rawByNutsId[id].access = Number(a);
-        accessUpdated++;
-      }
+      if (a != null && rawByNutsId[id]) { rawByNutsId[id].access = Number(a); accessUpdated++; }
     });
 
     computeAll();
     return {
       prodUpdated,
       accessUpdated,
-      cornMinMax: [cornScaled.min, cornScaled.max],         // kg/ha min/max
-      densMinMax: [accessScaled.min, accessScaled.max],     // inhabitants/km2 min/max (raw)
+      cornMinMax: [cornScaled.min, cornScaled.max],
+      densMinMax: [accessScaled.min, accessScaled.max],
       euroUrl
     };
   }
@@ -456,15 +432,11 @@
       setStatus("betöltés…");
       setDetail("");
 
-      // HU határok (GISCO)
       const nutsUrl = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson";
-      const fc = await fetch(nutsUrl, { cache:"no-store" }).then(r=>{
-        if(!r.ok) throw new Error("GISCO HTTP " + r.status);
-        return r.json();
-      });
+      const fc = await fetch(nutsUrl, { cache:"no-store" }).then(r=>r.json());
       const hu = { type:"FeatureCollection", features:(fc.features||[]).filter(f => f.properties && f.properties.CNTR_CODE==="HU") };
 
-      const info = await loadAllDataAndBuild();
+      const info = await loadAll();
 
       nutsLayer = L.geoJSON(hu, {
         style: baseStyle,
@@ -486,15 +458,13 @@
       map.fitBounds(nutsLayer.getBounds(), { padding:[20,20] });
 
       setStatus(
-        "<span class='ok'>OK</span> MAP-V2 · prod frissítve: " + info.prodUpdated +
+        "<span class='ok'>OK</span> MAP-V3 · prod frissítve: " + info.prodUpdated +
         " · access frissítve: " + info.accessUpdated +
         " · kukorica kg/ha min/max: " + info.cornMinMax[0] + "/" + info.cornMinMax[1] +
         " · népsűrűség min/max: " + info.densMinMax[0] + "/" + info.densMinMax[1]
       );
 
-      setDetail(
-        "<span class='small'>Eurostat lekérés: <code>" + info.euroUrl + "</code></span>"
-      );
+      setDetail("Eurostat lekérés: <code>" + info.euroUrl + "</code>");
 
     } catch (e) {
       console.error(e);
