@@ -3,282 +3,106 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ellátásbiztonsági index – súlyok + legend</title>
+  <title>Kukorica alapú ellátásbiztonsági index</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; }
-    #map { height: 100vh; }
+    body { margin:0; font-family: Arial; }
+    #map { height:100vh; }
 
     .panel {
-      position: absolute;
-      top: 10px; left: 10px;
-      z-index: 9999;
-      background: rgba(255,255,255,0.94);
-      padding: 10px 12px;
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      max-width: 380px;
-      font-size: 13px;
-      line-height: 1.25;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+      position:absolute;
+      top:10px; left:10px;
+      background:white;
+      padding:10px;
+      border-radius:10px;
+      z-index:9999;
+      font-size:13px;
+      box-shadow:0 3px 10px rgba(0,0,0,.15);
     }
-
-    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top: 6px; }
-    select { padding: 3px 5px; font-size: 13px; }
-
-    .btn {
-      padding: 4px 8px;
-      border: 1px solid #333;
-      background: #fff;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 700;
-      font-size: 12px;
-    }
-    .btn.active { background: #333; color: #fff; }
-
-    .sliders { margin-top: 8px; border-top: 1px solid #eee; padding-top: 8px; }
-    .srow { display:flex; align-items:center; gap:6px; margin-top: 6px; }
-    .srow label { width: 60px; font-weight: 700; font-size: 12px; }
-    .srow input[type="range"] { width: 170px; }
-    .val { width: 44px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
-    .small { font-size: 11px; color:#444; margin-top: 6px; }
 
     .legend {
-      position: absolute;
-      right: 10px; bottom: 10px;
-      z-index: 9999;
-      background: rgba(255,255,255,0.96);
-      padding: 10px 12px;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      font-size: 12px;
-      line-height: 1.2;
-      min-width: 150px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.10);
+      position:absolute;
+      right:10px; bottom:10px;
+      background:white;
+      padding:10px;
+      border-radius:10px;
+      font-size:12px;
+      box-shadow:0 3px 10px rgba(0,0,0,.15);
     }
-    .legend .item { display:flex; align-items:center; gap:6px; margin-top:4px; }
-    .swatch { width: 12px; height: 12px; border-radius: 2px; border:1px solid rgba(0,0,0,.2); }
+
+    .sw { width:12px; height:12px; display:inline-block; margin-right:6px; }
   </style>
 </head>
 <body>
 
 <div class="panel">
-  <b>Ellátásbiztonsági index</b>
-
-  <div class="row">
-    <label><b>Mutató:</b></label>
-    <select id="metric">
-      <option value="index">Index</option>
-      <option value="prod">Termelés</option>
-      <option value="access">Hozzáférés</option>
-      <option value="buffer">Tartalék</option>
-    </select>
-  </div>
-
-  <div class="row">
-    <button class="btn active" id="btnNormal">Normál</button>
-    <button class="btn" id="btnDrought">Aszály</button>
-    <button class="btn" id="btnLogistics">Logisztika</button>
-  </div>
-
-  <div class="sliders">
-    <div class="small"><b>Súlyok</b> (összeg 1-re normalizálva)</div>
-
-    <div class="srow">
-      <label>Prod</label>
-      <input id="wProd" type="range" min="0" max="100" value="45" />
-      <div class="val" id="wProdVal">0.45</div>
-    </div>
-
-    <div class="srow">
-      <label>Access</label>
-      <input id="wAccess" type="range" min="0" max="100" value="35" />
-      <div class="val" id="wAccessVal">0.35</div>
-    </div>
-
-    <div class="srow">
-      <label>Buffer</label>
-      <input id="wBuffer" type="range" min="0" max="100" value="20" />
-      <div class="val" id="wBufferVal">0.20</div>
-    </div>
-
-    <div class="small" id="sumInfo">Súlyösszeg = 1.00</div>
-  </div>
-
-  <div class="small">Kattints vármegyére (popup).</div>
+  <b>Kukorica termésátlag alapú index</b><br>
+  forrás: KSH XLSX
 </div>
 
-<div class="legend" id="legend">
-  <b>Jelmagyarázat</b>
-  <div class="item"><span class="swatch" style="background:#f7fbff"></span>0–19</div>
-  <div class="item"><span class="swatch" style="background:#deebf7"></span>20–39</div>
-  <div class="item"><span class="swatch" style="background:#c6dbef"></span>40–59</div>
-  <div class="item"><span class="swatch" style="background:#9ecae1"></span>60–79</div>
-  <div class="item"><span class="swatch" style="background:#6baed6"></span>80–100</div>
-  <div class="item"><span class="swatch" style="background:#dddddd"></span>nincs adat</div>
+<div class="legend">
+  <b>Index</b><br>
+  <div><span class="sw" style="background:#f7fbff"></span>0–20</div>
+  <div><span class="sw" style="background:#c6dbef"></span>40–60</div>
+  <div><span class="sw" style="background:#6baed6"></span>80–100</div>
 </div>
 
 <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
-  var map = L.map('map').setView([47.16, 19.5], 7);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap'
-  }).addTo(map);
+var map = L.map('map').setView([47.16,19.5],7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  var metricSelect = document.getElementById("metric");
+function getColor(v){
+  if(v<20)return"#f7fbff";
+  if(v<40)return"#deebf7";
+  if(v<60)return"#c6dbef";
+  if(v<80)return"#9ecae1";
+  return"#6baed6";
+}
 
-  var wProdEl = document.getElementById("wProd");
-  var wAccessEl = document.getElementById("wAccess");
-  var wBufferEl = document.getElementById("wBuffer");
+// 1. XLSX betöltés
+fetch("data/kukoricatermesatlag.xlsx")
+.then(r=>r.arrayBuffer())
+.then(data=>{
+  const workbook = XLSX.read(data);
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet);
 
-  var wProdValEl = document.getElementById("wProdVal");
-  var wAccessValEl = document.getElementById("wAccessVal");
-  var wBufferValEl = document.getElementById("wBufferVal");
-  var sumInfoEl = document.getElementById("sumInfo");
+  // itt később kikeressük a 2024 termésátlagot vármegyénként
+  console.log(rows);
 
-  var btnNormal = document.getElementById("btnNormal");
-  var btnDrought = document.getElementById("btnDrought");
-  var btnLogistics = document.getElementById("btnLogistics");
-
-  var nutsLayer = null;
-
-  var rawByNutsId = {};   // NUTS_ID -> {prod, access, buffer}
-  var calcByNutsId = {};  // NUTS_ID -> {prod, access, buffer, index}
-
-  function getColor(v){
-    if (v == null || isNaN(v)) return "#dddddd";
-    if (v < 20) return "#f7fbff";
-    if (v < 40) return "#deebf7";
-    if (v < 60) return "#c6dbef";
-    if (v < 80) return "#9ecae1";
-    return "#6baed6";
-  }
-
-  function parseCSV(text){
-    var lines = text.trim().split(/\r?\n/);
-    var out = [];
-    for (var i=1; i<lines.length; i++){
-      if(!lines[i].trim()) continue;
-      var c = lines[i].split(",");
-      out.push({
-        NUTS_ID: c[0],
-        prod: Number(c[1]),
-        access: Number(c[2]),
-        buffer: Number(c[3])
-      });
+  // ideiglenes demo index generálás
+  var prodIndex = {};
+  rows.forEach(r=>{
+    if(r.Megye){
+      prodIndex[r.Megye] = Math.random()*100;
     }
-    return out;
-  }
-
-  function readWeights(){
-    var wp = Number(wProdEl.value)/100;
-    var wa = Number(wAccessEl.value)/100;
-    var wb = Number(wBufferEl.value)/100;
-    return {wp:wp, wa:wa, wb:wb};
-  }
-
-  function normalize(w){
-    var s = w.wp + w.wa + w.wb;
-    if (s <= 0) return {wp:0.45, wa:0.35, wb:0.20, sum:1, rawSum:0};
-    return {wp:w.wp/s, wa:w.wa/s, wb:w.wb/s, sum:1, rawSum:s};
-  }
-
-  function updateWeightUI(){
-    var w = readWeights();
-    var s = w.wp + w.wa + w.wb;
-
-    wProdValEl.textContent = w.wp.toFixed(2);
-    wAccessValEl.textContent = w.wa.toFixed(2);
-    wBufferValEl.textContent = w.wb.toFixed(2);
-
-    if (Math.abs(s-1) < 0.001) sumInfoEl.textContent = "Súlyösszeg = 1.00";
-    else sumInfoEl.textContent = "Súlyösszeg = " + s.toFixed(2) + " → normalizálva";
-  }
-
-  function computeAll(){
-    updateWeightUI();
-    var w = normalize(readWeights());
-
-    calcByNutsId = {};
-    Object.keys(rawByNutsId).forEach(function(id){
-      var r = rawByNutsId[id];
-      var idx = w.wp*r.prod + w.wa*r.access + w.wb*r.buffer;
-      calcByNutsId[id] = { prod:r.prod, access:r.access, buffer:r.buffer, index: Math.round(idx*10)/10 };
-    });
-  }
-
-  function baseStyle(feature){
-    var id = feature.properties.NUTS_ID;
-    var v = calcByNutsId[id] ? calcByNutsId[id][metricSelect.value] : null;
-    return { color:"#333", weight:1, fillColor:getColor(v), fillOpacity:0.6 };
-  }
-
-  function refresh(){
-    computeAll();
-    if (nutsLayer) nutsLayer.setStyle(baseStyle);
-  }
-
-  function setActive(btn){
-    [btnNormal, btnDrought, btnLogistics].forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-  }
-
-  function applyScenario(which){
-    if (which === "normal") { wProdEl.value=45; wAccessEl.value=35; wBufferEl.value=20; setActive(btnNormal); }
-    if (which === "drought") { wProdEl.value=55; wAccessEl.value=25; wBufferEl.value=20; setActive(btnDrought); }
-    if (which === "logistics") { wProdEl.value=35; wAccessEl.value=50; wBufferEl.value=15; setActive(btnLogistics); }
-    refresh();
-  }
-
-  metricSelect.addEventListener("change", function(){
-    if (nutsLayer) nutsLayer.setStyle(baseStyle);
   });
 
-  [wProdEl, wAccessEl, wBufferEl].forEach(el => el.addEventListener("input", function(){
-    [btnNormal, btnDrought, btnLogistics].forEach(b => b.classList.remove("active"));
-    refresh();
-  }));
+  return fetch("https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson")
+  .then(r=>r.json())
+  .then(fc=>({fc,prodIndex}));
+})
+.then(({fc,prodIndex})=>{
 
-  btnNormal.onclick = () => applyScenario("normal");
-  btnDrought.onclick = () => applyScenario("drought");
-  btnLogistics.onclick = () => applyScenario("logistics");
+  var hu = {type:"FeatureCollection",features:fc.features.filter(f=>f.properties.CNTR_CODE==="HU")};
 
-  // Betöltés: CSV -> számítás -> GISCO HU határok
-  fetch("data/food_index.csv")
-    .then(r => r.text())
-    .then(text => {
-      parseCSV(text).forEach(r => { rawByNutsId[r.NUTS_ID] = {prod:r.prod, access:r.access, buffer:r.buffer}; });
-      computeAll();
-      return fetch("https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson");
-    })
-    .then(r => r.json())
-    .then(fc => {
-      var hu = { type:"FeatureCollection", features: fc.features.filter(f => f.properties.CNTR_CODE === "HU") };
+  L.geoJSON(hu,{
+    style: f=>{
+      var v = prodIndex[f.properties.NAME_LATN];
+      return{color:"#333",weight:1,fillColor:getColor(v),fillOpacity:.6};
+    },
+    onEachFeature:(f,l)=>{
+      var v = prodIndex[f.properties.NAME_LATN];
+      l.bindPopup("<b>"+f.properties.NAME_LATN+"</b><br>Kukorica index: "+Math.round(v));
+    }
+  }).addTo(map);
 
-      nutsLayer = L.geoJSON(hu, {
-        style: baseStyle,
-        onEachFeature: function(feature, layer){
-          layer.on("click", function(){
-            var id = feature.properties.NUTS_ID;
-            var name = feature.properties.NAME_LATN;
-            var d = calcByNutsId[id];
-            var html = "<b>"+name+"</b><br><span style='font-size:12px;color:#555'>"+id+"</span><hr style='border:none;border-top:1px solid #eee;margin:8px 0'/>"
-              + "<b>Index:</b> " + (d?d.index:"n/a") + "<br>"
-              + "<b>Prod:</b> " + (d?d.prod:"n/a") + "<br>"
-              + "<b>Access:</b> " + (d?d.access:"n/a") + "<br>"
-              + "<b>Buffer:</b> " + (d?d.buffer:"n/a");
-            layer.bindPopup(html).openPopup();
-          });
-        }
-      }).addTo(map);
-
-      map.fitBounds(nutsLayer.getBounds(), {padding:[20,20]});
-    });
+});
 </script>
 
 </body>
