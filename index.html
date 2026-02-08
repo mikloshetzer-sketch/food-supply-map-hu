@@ -20,12 +20,11 @@
       padding: 10px 12px;
       border: 1px solid #ddd;
       border-radius: 12px;
-      max-width: 560px;
+      max-width: 600px;
       font-size: 13px;
       line-height: 1.25;
       box-shadow: 0 3px 10px rgba(0,0,0,0.12);
     }
-
     .badge {
       display:inline-block;
       padding: 2px 8px;
@@ -82,7 +81,7 @@
 
 <div class="panel">
   <b>Ellátásbiztonsági index</b>
-  <span class="badge">VERZIÓ: MAP-V3</span>
+  <span class="badge">VERZIÓ: MAP-V4</span>
 
   <div class="row">
     <label><b>Mutató:</b></label>
@@ -130,7 +129,7 @@
     Excel: <code>data/kukoricatermesatlag.xlsx</code><br>
     Mapping: <code>data/nuts3_to_ksh_county.csv</code><br>
     Baseline: <code>data/food_index.csv</code><br>
-    Eurostat: <code>DEMO_R_D3DENS</code> (freq=A, unit=PER_KM2, 2024) :contentReference[oaicite:1]{index=1}
+    Eurostat: <code>DEMO_R_D3DENS</code> (freq=A, unit=PER_KM2, lastTimePeriod=1)
   </div>
 </div>
 
@@ -173,8 +172,8 @@
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
 
   let nutsLayer = null;
-  let rawByNutsId = {};   // { prod, access, buffer } 0..100
-  let calcByNutsId = {};  // + index
+  let rawByNutsId = {};
+  let calcByNutsId = {};
 
   function getColor(v){
     if (v == null || Number.isNaN(v)) return "#dddddd";
@@ -280,7 +279,7 @@
   btnDrought.onclick=()=>applyScenario("drought");
   btnLogistics.onclick=()=>applyScenario("logistics");
 
-  function extractCornYield2024FromWorkbook(wb){
+  function extractCornYieldFromWorkbook(wb){
     const sheet = wb.Sheets[wb.SheetNames[0]];
     const grid = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
     if (!grid || !grid.length) return { valuesByName: {}, reason: "üres munkalap" };
@@ -325,12 +324,8 @@
     return { scaled, min, max };
   }
 
-  // JSON-stat -> geo->value (robosztus, dim-pozícióval)
   function parseJsonStatGeoValues(json){
-    const ids = json.id;
-    const sizes = json.size;
-    const dim = json.dimension;
-    const vals = json.value;
+    const ids = json.id, sizes = json.size, dim = json.dimension, vals = json.value;
     if (!ids || !sizes || !dim || !vals) throw new Error("Eurostat: hibás JSON-stat");
 
     const geoPos = ids.indexOf("geo");
@@ -340,7 +335,6 @@
     let prod = 1;
     for (let i = sizes.length - 1; i >= 0; i--) { mult[i] = prod; prod *= sizes[i]; }
 
-    // geo codes sorrend
     const geoIndexObj = dim.geo.category.index;
     const geoCodes = Array.isArray(geoIndexObj)
       ? geoIndexObj
@@ -360,6 +354,18 @@
     return out;
   }
 
+  function getLastTimeLabel(json){
+    // a lekérés lastTimePeriod=1, így TIME dim mérete 1, de a címkét kiolvassuk.
+    try {
+      const timeCat = json.dimension.time.category;
+      if (timeCat && timeCat.label) {
+        const keys = Object.keys(timeCat.label);
+        if (keys.length) return keys[0];
+      }
+    } catch(_) {}
+    return "utolsó elérhető";
+  }
+
   async function loadAll(){
     const NUTS = [
       "HU110","HU120","HU211","HU212","HU213","HU221","HU222","HU223","HU231","HU232","HU233",
@@ -367,17 +373,26 @@
     ];
 
     // baseline
-    const csvText = await fetch("data/food_index.csv", { cache:"no-store" }).then(r=>r.text());
+    const csvText = await fetch("data/food_index.csv", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("food_index.csv HTTP " + r.status);
+      return r.text();
+    });
     rawByNutsId = parseFoodIndexCSV(csvText);
 
     // mapping
-    const mapText = await fetch("data/nuts3_to_ksh_county.csv", { cache:"no-store" }).then(r=>r.text());
+    const mapText = await fetch("data/nuts3_to_ksh_county.csv", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("nuts3_to_ksh_county.csv HTTP " + r.status);
+      return r.text();
+    });
     const nutsToKsh = parseMappingCSV(mapText);
 
     // KSH Excel -> prod
-    const ab = await fetch("data/kukoricatermesatlag.xlsx", { cache:"no-store" }).then(r=>r.arrayBuffer());
+    const ab = await fetch("data/kukoricatermesatlag.xlsx", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("kukoricatermesatlag.xlsx HTTP " + r.status);
+      return r.arrayBuffer();
+    });
     const wb = XLSX.read(ab, { type:"array" });
-    const ex = extractCornYield2024FromWorkbook(wb);
+    const ex = extractCornYieldFromWorkbook(wb);
     if (!Object.keys(ex.valuesByName).length) throw new Error("KSH Excel kiolvasás sikertelen: " + ex.reason);
     const cornScaled = scaleMapTo0_100(ex.valuesByName);
 
@@ -390,15 +405,14 @@
       if (prodVal != null && rawByNutsId[nutsId]) { rawByNutsId[nutsId].prod = Number(prodVal); prodUpdated++; }
     });
 
-    // Eurostat (FIX: freq + unit + geoLevel) :contentReference[oaicite:2]{index=2}
+    // Eurostat: ne évre kérjünk, hanem az utolsó elérhetőre (lastTimePeriod=1) :contentReference[oaicite:1]{index=1}
     const base = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/DEMO_R_D3DENS";
     const qs = [
       "lang=EN",
       "format=JSON",
       "freq=A",
       "unit=PER_KM2",
-      "geoLevel=nuts3",
-      "time=2024",
+      "lastTimePeriod=1",
       ...NUTS.map(g => "geo=" + encodeURIComponent(g))
     ].join("&");
     const euroUrl = base + "?" + qs;
@@ -423,7 +437,8 @@
       accessUpdated,
       cornMinMax: [cornScaled.min, cornScaled.max],
       densMinMax: [accessScaled.min, accessScaled.max],
-      euroUrl
+      euroUrl,
+      euroYear: getLastTimeLabel(euroJson)
     };
   }
 
@@ -433,7 +448,10 @@
       setDetail("");
 
       const nutsUrl = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson";
-      const fc = await fetch(nutsUrl, { cache:"no-store" }).then(r=>r.json());
+      const fc = await fetch(nutsUrl, { cache:"no-store" }).then(r=>{
+        if(!r.ok) throw new Error("GISCO HTTP " + r.status);
+        return r.json();
+      });
       const hu = { type:"FeatureCollection", features:(fc.features||[]).filter(f => f.properties && f.properties.CNTR_CODE==="HU") };
 
       const info = await loadAll();
@@ -458,10 +476,10 @@
       map.fitBounds(nutsLayer.getBounds(), { padding:[20,20] });
 
       setStatus(
-        "<span class='ok'>OK</span> MAP-V3 · prod frissítve: " + info.prodUpdated +
+        "<span class='ok'>OK</span> MAP-V4 · prod frissítve: " + info.prodUpdated +
         " · access frissítve: " + info.accessUpdated +
         " · kukorica kg/ha min/max: " + info.cornMinMax[0] + "/" + info.cornMinMax[1] +
-        " · népsűrűség min/max: " + info.densMinMax[0] + "/" + info.densMinMax[1]
+        " · népsűrűség ("+info.euroYear+") min/max: " + info.densMinMax[0] + "/" + info.densMinMax[1]
       );
 
       setDetail("Eurostat lekérés: <code>" + info.euroUrl + "</code>");
