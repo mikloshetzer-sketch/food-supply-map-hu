@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ellátásbiztonsági index – KSH kukorica + Eurostat access</title>
+  <title>Ellátásbiztonsági index – HU NUTS3</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -20,7 +20,7 @@
       padding: 10px 12px;
       border: 1px solid #ddd;
       border-radius: 12px;
-      max-width: 600px;
+      max-width: 520px;
       font-size: 13px;
       line-height: 1.25;
       box-shadow: 0 3px 10px rgba(0,0,0,0.12);
@@ -54,7 +54,7 @@
     .srow label { width: 60px; font-weight: 700; font-size: 12px; }
     .srow input[type="range"] { width: 170px; }
     .val { width: 44px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
-    .small { font-size: 11px; color:#444; margin-top: 6px; word-break: break-all; }
+    .small { font-size: 11px; color:#444; margin-top: 6px; }
 
     .legend {
       position: absolute;
@@ -81,7 +81,7 @@
 
 <div class="panel">
   <b>Ellátásbiztonsági index</b>
-  <span class="badge">VERZIÓ: MAP-V4</span>
+  <span class="badge">VERZIÓ: MAP-CLEAN</span>
 
   <div class="row">
     <label><b>Mutató:</b></label>
@@ -89,7 +89,7 @@
       <option value="index">Index</option>
       <option value="prod">Termelés (KSH kukorica)</option>
       <option value="access">Hozzáférés (Eurostat népsűrűség)</option>
-      <option value="buffer">Tartalék (baseline)</option>
+      <option value="buffer">Tartalék</option>
     </select>
   </div>
 
@@ -122,14 +122,7 @@
 
     <div class="small" id="sumInfo">Súlyösszeg = 1.00</div>
     <div class="small" id="status">Státusz: betöltés…</div>
-    <div class="small" id="detail"></div>
-  </div>
-
-  <div class="small">
-    Excel: <code>data/kukoricatermesatlag.xlsx</code><br>
-    Mapping: <code>data/nuts3_to_ksh_county.csv</code><br>
-    Baseline: <code>data/food_index.csv</code><br>
-    Eurostat: <code>DEMO_R_D3DENS</code> (freq=A, unit=PER_KM2, lastTimePeriod=1)
+    <div class="small" id="sources"></div>
   </div>
 </div>
 
@@ -149,7 +142,7 @@
 <script>
 (function(){
   const statusEl = document.getElementById("status");
-  const detailEl = document.getElementById("detail");
+  const sourcesEl = document.getElementById("sources");
   const metricSelect = document.getElementById("metric");
 
   const wProdEl = document.getElementById("wProd");
@@ -166,7 +159,7 @@
   const btnLogistics = document.getElementById("btnLogistics");
 
   function setStatus(html){ statusEl.innerHTML = "Státusz: " + html; }
-  function setDetail(html){ detailEl.innerHTML = html || ""; }
+  function setSources(html){ sourcesEl.innerHTML = html || ""; }
 
   const map = L.map('map').setView([47.16, 19.5], 7);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
@@ -174,6 +167,7 @@
   let nutsLayer = null;
   let rawByNutsId = {};
   let calcByNutsId = {};
+  let euroYear = "utolsó elérhető";
 
   function getColor(v){
     if (v == null || Number.isNaN(v)) return "#dddddd";
@@ -344,10 +338,8 @@
     for (let g=0; g<geoCodes.length; g++){
       const coords = new Array(sizes.length).fill(0);
       coords[geoPos] = g;
-
       let idx = 0;
       for (let i=0;i<coords.length;i++) idx += coords[i]*mult[i];
-
       const v = vals[idx];
       if (v != null && Number.isFinite(Number(v))) out[geoCodes[g]] = Number(v);
     }
@@ -355,7 +347,6 @@
   }
 
   function getLastTimeLabel(json){
-    // a lekérés lastTimePeriod=1, így TIME dim mérete 1, de a címkét kiolvassuk.
     try {
       const timeCat = json.dimension.time.category;
       if (timeCat && timeCat.label) {
@@ -405,7 +396,7 @@
       if (prodVal != null && rawByNutsId[nutsId]) { rawByNutsId[nutsId].prod = Number(prodVal); prodUpdated++; }
     });
 
-    // Eurostat: ne évre kérjünk, hanem az utolsó elérhetőre (lastTimePeriod=1) :contentReference[oaicite:1]{index=1}
+    // Eurostat access (népsűrűség) – lastTimePeriod=1
     const base = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/DEMO_R_D3DENS";
     const qs = [
       "lang=EN",
@@ -422,6 +413,7 @@
       return r.json();
     });
 
+    euroYear = getLastTimeLabel(euroJson);
     const densRaw = parseJsonStatGeoValues(euroJson);
     const accessScaled = scaleMapTo0_100(densRaw);
 
@@ -436,16 +428,14 @@
       prodUpdated,
       accessUpdated,
       cornMinMax: [cornScaled.min, cornScaled.max],
-      densMinMax: [accessScaled.min, accessScaled.max],
-      euroUrl,
-      euroYear: getLastTimeLabel(euroJson)
+      densMinMax: [accessScaled.min, accessScaled.max]
     };
   }
 
   (async function(){
     try {
       setStatus("betöltés…");
-      setDetail("");
+      setSources("");
 
       const nutsUrl = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson";
       const fc = await fetch(nutsUrl, { cache:"no-store" }).then(r=>{
@@ -463,11 +453,13 @@
             const id = feature.properties.NUTS_ID;
             const name = feature.properties.NAME_LATN || feature.properties.NUTS_NAME || "Terület";
             const d = calcByNutsId[id];
-            const html = "<b>"+name+"</b><br><span style='font-size:12px;color:#555'>"+id+"</span><hr style='border:none;border-top:1px solid #eee;margin:8px 0'/>"
-              + "<b>Index:</b> " + (d?d.index:"n/a") + "<br>"
-              + "<b>Prod (0–100):</b> " + (d?d.prod:"n/a") + "<br>"
-              + "<b>Access (0–100):</b> " + (d?d.access:"n/a") + "<br>"
-              + "<b>Buffer (0–100):</b> " + (d?d.buffer:"n/a");
+            const html =
+              "<b>"+name+"</b><br><span style='font-size:12px;color:#555'>"+id+"</span>" +
+              "<hr style='border:none;border-top:1px solid #eee;margin:8px 0'/>" +
+              "<b>Index:</b> " + (d?d.index:"n/a") + "<br>" +
+              "<b>Prod:</b> " + (d?d.prod:"n/a") + "<br>" +
+              "<b>Access:</b> " + (d?d.access:"n/a") + "<br>" +
+              "<b>Buffer:</b> " + (d?d.buffer:"n/a");
             layer.bindPopup(html).openPopup();
           });
         }
@@ -476,13 +468,15 @@
       map.fitBounds(nutsLayer.getBounds(), { padding:[20,20] });
 
       setStatus(
-        "<span class='ok'>OK</span> MAP-V4 · prod frissítve: " + info.prodUpdated +
-        " · access frissítve: " + info.accessUpdated +
+        "<span class='ok'>OK</span> · prod: " + info.prodUpdated +
+        " · access: " + info.accessUpdated +
         " · kukorica kg/ha min/max: " + info.cornMinMax[0] + "/" + info.cornMinMax[1] +
-        " · népsűrűség ("+info.euroYear+") min/max: " + info.densMinMax[0] + "/" + info.densMinMax[1]
+        " · népsűrűség (" + euroYear + ") min/max: " + info.densMinMax[0] + "/" + info.densMinMax[1]
       );
 
-      setDetail("Eurostat lekérés: <code>" + info.euroUrl + "</code>");
+      setSources(
+        "Források: KSH (kukorica termésátlag, 2024) · Eurostat DEMO_R_D3DENS ("+euroYear+")"
+      );
 
     } catch (e) {
       console.error(e);
