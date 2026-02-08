@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Élelmiszer-ellátásbiztonság – interaktív index</title>
 
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
     body { margin: 0; font-family: Arial, sans-serif; }
@@ -67,7 +66,6 @@
     code { font-size: 12px; }
   </style>
 
-  <!-- XLSX lib (Excel olvasáshoz) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -117,7 +115,7 @@
   </div>
 
   <div class="small">
-    Excel (KSH) fájl: <code>data/kukoricatermesatlag.xlsx</code><br>
+    Excel (KSH): <code>data/kukoricatermesatlag.xlsx</code><br>
     Fallback: <code>data/food_index.csv</code>
   </div>
 </div>
@@ -134,32 +132,23 @@
 
 <div id="map"></div>
 
-<!-- Leaflet JS (unpkg), fallback jsdelivr -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function ensureLeaflet(cb){
   if (window.L && window.L.map) return cb();
   var s = document.createElement("script");
   s.src = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js";
-  s.onload = cb;
-  s.onerror = cb;
+  s.onload = cb; s.onerror = cb;
   document.head.appendChild(s);
 })(function main(){
   const statusEl = document.getElementById("status");
   function setStatus(html){ statusEl.innerHTML = "Státusz: " + html; }
 
-  if (!window.L || !window.L.map) {
-    setStatus("<span class='err'>Leaflet nem töltődött be (CDN hiba)</span>");
-    return;
-  }
+  if (!window.L || !window.L.map) { setStatus("<span class='err'>Leaflet CDN hiba</span>"); return; }
 
-  // ----- MAP -----
   const map = L.map('map').setView([47.16, 19.5], 7);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap'
-  }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
 
-  // ----- UI -----
   const metricSelect = document.getElementById("metric");
   const wProdEl = document.getElementById("wProd");
   const wAccessEl = document.getElementById("wAccess");
@@ -174,9 +163,6 @@
   const btnLogistics = document.getElementById("btnLogistics");
 
   let nutsLayer = null;
-
-  // rawByNutsId: komponensek 0..100
-  // calcByNutsId: komponensek + index
   let rawByNutsId = {};
   let calcByNutsId = {};
 
@@ -197,22 +183,12 @@
       if(!line) continue;
       const c = line.split(",").map(x=>x.trim());
       const id = c[0];
-      out[id] = {
-        prod: Number(c[1]),
-        access: Number(c[2]),
-        buffer: Number(c[3])
-      };
+      out[id] = { prod:Number(c[1]), access:Number(c[2]), buffer:Number(c[3]) };
     }
     return out;
   }
 
-  function readWeights(){
-    return {
-      wp: Number(wProdEl.value)/100,
-      wa: Number(wAccessEl.value)/100,
-      wb: Number(wBufferEl.value)/100
-    };
-  }
+  function readWeights(){ return { wp:Number(wProdEl.value)/100, wa:Number(wAccessEl.value)/100, wb:Number(wBufferEl.value)/100 }; }
   function normalize(w){
     const s = w.wp + w.wa + w.wb;
     if (s <= 0) return {wp:0.45, wa:0.35, wb:0.20, rawSum:0};
@@ -224,43 +200,32 @@
     wProdValEl.textContent = w.wp.toFixed(2);
     wAccessValEl.textContent = w.wa.toFixed(2);
     wBufferValEl.textContent = w.wb.toFixed(2);
-    sumInfoEl.textContent = (Math.abs(s-1) < 0.001)
-      ? "Súlyösszeg = 1.00"
-      : ("Súlyösszeg = " + s.toFixed(2) + " → normalizálva");
+    sumInfoEl.textContent = (Math.abs(s-1) < 0.001) ? "Súlyösszeg = 1.00" : ("Súlyösszeg = " + s.toFixed(2) + " → normalizálva");
   }
-
   function computeAll(){
     updateWeightUI();
     const w = normalize(readWeights());
     calcByNutsId = {};
     Object.keys(rawByNutsId).forEach(id=>{
       const r = rawByNutsId[id];
+      // ha bármely komponens hiányzik → index is null (hogy Budapest ne torzítson)
+      if (r.prod == null || r.access == null || r.buffer == null || [r.prod,r.access,r.buffer].some(x=>Number.isNaN(x))) {
+        calcByNutsId[id] = { ...r, index: null };
+        return;
+      }
       const idx = w.wp*r.prod + w.wa*r.access + w.wb*r.buffer;
-      calcByNutsId[id] = {
-        prod: r.prod,
-        access: r.access,
-        buffer: r.buffer,
-        index: Math.round(idx*10)/10
-      };
+      calcByNutsId[id] = { prod:r.prod, access:r.access, buffer:r.buffer, index: Math.round(idx*10)/10 };
     });
   }
-
   function baseStyle(feature){
     const id = feature.properties.NUTS_ID;
     const metric = metricSelect.value;
     const v = calcByNutsId[id] ? Number(calcByNutsId[id][metric]) : null;
     return { color:"#333", weight:1, fillColor:getColor(v), fillOpacity:0.6 };
   }
+  function refresh(){ computeAll(); if (nutsLayer) nutsLayer.setStyle(baseStyle); }
 
-  function refresh(){
-    computeAll();
-    if (nutsLayer) nutsLayer.setStyle(baseStyle);
-  }
-
-  function setActive(btn){
-    [btnNormal, btnDrought, btnLogistics].forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-  }
+  function setActive(btn){ [btnNormal, btnDrought, btnLogistics].forEach(b=>b.classList.remove("active")); btn.classList.add("active"); }
   function applyScenario(which){
     if (which==="normal"){ wProdEl.value=45; wAccessEl.value=35; wBufferEl.value=20; setActive(btnNormal); }
     if (which==="drought"){ wProdEl.value=55; wAccessEl.value=25; wBufferEl.value=20; setActive(btnDrought); }
@@ -269,62 +234,36 @@
   }
 
   metricSelect.addEventListener("change", ()=>{ if (nutsLayer) nutsLayer.setStyle(baseStyle); });
-  [wProdEl, wAccessEl, wBufferEl].forEach(el => el.addEventListener("input", ()=>{
-    [btnNormal, btnDrought, btnLogistics].forEach(b => b.classList.remove("active"));
+  [wProdEl,wAccessEl,wBufferEl].forEach(el=>el.addEventListener("input", ()=>{
+    [btnNormal, btnDrought, btnLogistics].forEach(b=>b.classList.remove("active"));
     refresh();
   }));
-  btnNormal.onclick = ()=>applyScenario("normal");
-  btnDrought.onclick = ()=>applyScenario("drought");
-  btnLogistics.onclick = ()=>applyScenario("logistics");
+  btnNormal.onclick=()=>applyScenario("normal");
+  btnDrought.onclick=()=>applyScenario("drought");
+  btnLogistics.onclick=()=>applyScenario("logistics");
 
-  // ----- Excel beolvasás (kukorica) -> prod 0..100 -----
   function normKey(s){
     if (!s) return "";
-    return String(s)
-      .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")   // ékezetek le
-      .replace(/[^a-z]/g, "");                           // csak betű
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z]/g,"");
   }
-
-  // Megpróbáljuk “okosan” kinyerni a 2024-es termésátlagot (kg/ha) táblából:
-  // - beolvassuk a sheet-et 2D tömbként
-  // - megkeressük a sort, ahol szerepel "Termésátlag" és a 2024 oszlopot
-  // - sorok elején megye/vármegye név + 2024 érték
   function extractCornYield2024FromWorkbook(wb){
     const sheet = wb.Sheets[wb.SheetNames[0]];
     const grid = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
     if (!grid || !grid.length) return { valuesByName: {}, reason: "üres munkalap" };
 
-    // keressünk egy fejléc sort, ami sok évszámot tartalmaz (pl. 2000..2024)
-    let headerRowIdx = -1;
-    let col2024 = -1;
-
-    for (let i=0; i<Math.min(80, grid.length); i++){
+    let col2024 = -1, headerRowIdx = -1;
+    for (let i=0;i<Math.min(80,grid.length);i++){
       const row = grid[i] || [];
-      const idx = row.findIndex(x => String(x).trim() === "2024");
+      let idx = row.findIndex(x => String(x).trim() === "2024");
+      if (idx === -1) idx = row.findIndex(x => Number(x) === 2024);
       if (idx !== -1) { headerRowIdx = i; col2024 = idx; break; }
     }
-
-    if (col2024 === -1) {
-      // néha a 2024 számként van
-      for (let i=0; i<Math.min(80, grid.length); i++){
-        const row = grid[i] || [];
-        const idx = row.findIndex(x => Number(x) === 2024);
-        if (idx !== -1) { headerRowIdx = i; col2024 = idx; break; }
-      }
-    }
-
     if (col2024 === -1) return { valuesByName: {}, reason: "nem találom a 2024 oszlopot" };
 
-    // keressük meg, hol kezdődik a “Termésátlag” blokk
-    // (ha nincs, akkor simán minden megyesorból próbálunk olvasni)
     let startIdx = headerRowIdx + 1;
     for (let i=0; i<Math.min(headerRowIdx + 50, grid.length); i++){
-      const rowStr = (grid[i] || []).map(x=>String(x||"")).join(" ");
-      if (rowStr.toLowerCase().includes("termésátlag") || rowStr.toLowerCase().includes("termesatlag")) {
-        startIdx = i + 1;
-        break;
-      }
+      const rowStr = (grid[i] || []).map(x=>String(x||"")).join(" ").toLowerCase();
+      if (rowStr.includes("termésátlag") || rowStr.includes("termesatlag")) { startIdx = i + 1; break; }
     }
 
     const valuesByName = {};
@@ -332,37 +271,21 @@
       const row = grid[i] || [];
       const nameCell = row[0];
       if (!nameCell) continue;
-
       const name = String(nameCell).trim();
-      const v = row[col2024];
-
-      // stop: ha üres sorok jönnek sokáig
-      if (name.toLowerCase().includes("ország") || name.toLowerCase().includes("osszesen")) {
-        // lehet, hogy a táblában "Magyarország" is van, de azt nem használjuk
-      }
-
-      // csak ha van érték
-      const num = Number(v);
-      if (!Number.isNaN(num) && Number.isFinite(num)) {
-        valuesByName[normKey(name)] = num;
-      }
+      const num = Number(row[col2024]);
+      if (Number.isFinite(num)) valuesByName[normKey(name)] = num;
     }
-
-    return { valuesByName, reason: "ok", col2024, headerRowIdx };
+    return { valuesByName, reason: "ok" };
   }
-
   function scaleTo0_100(valuesByName){
     const nums = Object.values(valuesByName).filter(v => Number.isFinite(v));
-    if (!nums.length) return { scaledByName: {}, min:null, max:null };
-
-    const min = Math.min(...nums);
-    const max = Math.max(...nums);
+    const min = Math.min(...nums), max = Math.max(...nums);
     const scaledByName = {};
     Object.keys(valuesByName).forEach(k=>{
       const v = valuesByName[k];
       if (!Number.isFinite(v)) return;
-      const s = (max === min) ? 50 : ((v - min) / (max - min)) * 100;
-      scaledByName[k] = Math.round(s * 10) / 10;
+      const s = (max===min) ? 50 : ((v-min)/(max-min))*100;
+      scaledByName[k] = Math.round(s*10)/10;
     });
     return { scaledByName, min, max };
   }
@@ -377,60 +300,32 @@
     return { ok:true, source:"CSV" };
   }
 
-  async function tryLoadCornProdFromExcelAndMerge(){
-    // 1) baseline: access+buffer (és ideiglenesen prod is) CSV-ből
+  async function loadExcelProd(){
     await loadBaselineFromCSV();
-
-    // 2) Excelből: kukorica 2024 (kg/ha) -> skálázott prod (0..100)
-    if (!window.XLSX) throw new Error("XLSX könyvtár nem töltődött be");
-
     const ab = await fetch("data/kukoricatermesatlag.xlsx", { cache: "no-store" }).then(r=>{
       if(!r.ok) throw new Error("kukoricatermesatlag.xlsx HTTP " + r.status);
       return r.arrayBuffer();
     });
-
-    const wb = XLSX.read(ab, { type: "array" });
-    const extracted = extractCornYield2024FromWorkbook(wb);
-    if (!Object.keys(extracted.valuesByName).length) {
-      throw new Error("Excel kiolvasás sikertelen: " + extracted.reason);
-    }
-
-    const scaled = scaleTo0_100(extracted.valuesByName);
-
-    // 3) GISCO NUTS3 NAME_LATN -> kulcs, és ráírjuk a prod-ot a megfelelő NUTS_ID-hez
-    // Budapestnél lehet nincs kukorica adat → marad a CSV prod-ja vagy null
-    // Mi most: ha nincs Excel találat, nem bántjuk a prod-ot.
-    let updated = 0;
-
-    // Ehhez kell a hu layer betöltése előbb, de mi még nem töltöttük be.
-    // Megoldás: a határ betöltése után csináljuk a hozzárendelést.
-    return { ok:true, source:"Excel", scaledByName: scaled.scaledByName, min: scaled.min, max: scaled.max, updatedCount: updated };
+    const wb = XLSX.read(ab, { type:"array" });
+    const ex = extractCornYield2024FromWorkbook(wb);
+    if (!Object.keys(ex.valuesByName).length) throw new Error("Excel kiolvasás sikertelen: " + ex.reason);
+    return scaleTo0_100(ex.valuesByName);
   }
 
-  // ----- MAIN LOAD -----
   (async function(){
     try {
-      setStatus("indul…");
-
-      // 1) GISCO határok
       const nutsUrl = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson";
-      const fc = await fetch(nutsUrl, { cache: "no-store" }).then(r=>{
-        if(!r.ok) throw new Error("GISCO HTTP " + r.status);
-        return r.json();
-      });
-      const hu = { type:"FeatureCollection", features: (fc.features||[]).filter(f => f.properties && f.properties.CNTR_CODE === "HU") };
+      const fc = await fetch(nutsUrl, { cache: "no-store" }).then(r=>{ if(!r.ok) throw new Error("GISCO HTTP "+r.status); return r.json(); });
+      const hu = { type:"FeatureCollection", features:(fc.features||[]).filter(f => f.properties && f.properties.CNTR_CODE==="HU") };
 
-      // 2) adat: először próbáljuk Excelből a prod-ot + CSV baseline-t; ha bukik, marad a CSV
-      let excelInfo = null;
+      let scaled = null;
       try {
-        excelInfo = await tryLoadCornProdFromExcelAndMerge();
+        scaled = await loadExcelProd();
       } catch (e) {
-        // Excel nem ment, de legalább legyen CSV
         await loadBaselineFromCSV();
         setStatus("<span class='err'>Excel hiba</span> → fallback CSV (" + e.message + ")");
       }
 
-      // 3) Layer kirakása
       nutsLayer = L.geoJSON(hu, {
         style: baseStyle,
         onEachFeature: function(feature, layer){
@@ -450,21 +345,26 @@
 
       map.fitBounds(nutsLayer.getBounds(), { padding:[20,20] });
 
-      // 4) ha Excel ment, itt hozzárendeljük NAME alapján prod-ot
-      if (excelInfo && excelInfo.ok && excelInfo.source === "Excel" && excelInfo.scaledByName) {
+      if (scaled && scaled.scaledByName) {
+        // hozzárendelés név alapján
         let updated = 0;
         hu.features.forEach(f=>{
           const id = f.properties.NUTS_ID;
           const name = f.properties.NAME_LATN || "";
           const key = normKey(name);
-          const prod = excelInfo.scaledByName[key];
+          const prod = scaled.scaledByName[key];
+
           if (prod != null && rawByNutsId[id]) {
             rawByNutsId[id].prod = Number(prod);
             updated++;
           }
         });
+
+        // ---- EZ A LÉNYEG: Budapest (HU110) prod = null ----
+        if (rawByNutsId["HU110"]) rawByNutsId["HU110"].prod = null;
+
         refresh();
-        setStatus("<span class='ok'>OK</span> Excel prod betöltve (2024), frissítve: " + updated + " terület. Min/Max kg/ha: " + excelInfo.min + "/" + excelInfo.max);
+        setStatus("<span class='ok'>OK</span> Excel prod (kukorica 2024) + Budapest nincs adat. Frissítve: " + updated + " terület. Min/Max kg/ha: " + scaled.min + "/" + scaled.max);
       } else if (!statusEl.innerHTML.includes("Excel hiba")) {
         setStatus("<span class='ok'>OK</span> CSV adatok betöltve");
       }
