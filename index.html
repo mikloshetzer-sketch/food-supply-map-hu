@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ellátásbiztonsági index – HU (Lines + Stations + OSM Processing)</title>
+  <title>Ellátásbiztonsági index – HU (HubScore logisztika)</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -18,7 +18,7 @@
       padding:10px 12px;
       border:1px solid #ddd;
       border-radius:12px;
-      max-width:920px;
+      max-width:980px;
       font-size:13px; line-height:1.25;
       box-shadow:0 3px 10px rgba(0,0,0,0.12);
     }
@@ -44,7 +44,7 @@
 
     .sliders{ margin-top:8px; border-top:1px solid #eee; padding-top:8px; }
     .srow{ display:flex; align-items:center; gap:6px; margin-top:6px; }
-    .srow label{ width:180px; font-weight:700; font-size:12px; }
+    .srow label{ width:210px; font-weight:700; font-size:12px; }
     .srow input[type="range"]{ width:210px; }
     .val{ width:56px; text-align:right; font-size:12px; font-variant-numeric: tabular-nums; }
     .small{ font-size:11px; color:#444; margin-top:6px; }
@@ -53,7 +53,7 @@
       position:absolute; right:10px; bottom:10px; z-index:9999;
       background: rgba(255,255,255,0.96);
       padding:10px 12px; border:1px solid #ddd; border-radius:10px;
-      font-size:12px; line-height:1.2; min-width:250px;
+      font-size:12px; line-height:1.2; min-width:260px;
       box-shadow:0 3px 10px rgba(0,0,0,0.10);
     }
     .legend .item{ display:flex; align-items:center; gap:6px; margin-top:4px; }
@@ -67,7 +67,7 @@
 
 <div class="panel">
   <b>Ellátásbiztonsági index</b>
-  <span class="badge">VERZIÓ: MAP-V19-OSM-PROCESSING</span>
+  <span class="badge">VERZIÓ: MAP-V20-HUBSCORE</span>
 
   <div class="row">
     <label><b>Mutató:</b></label>
@@ -77,7 +77,8 @@
       <option value="buffer">Tartalék (baseline)</option>
       <option value="access">Hozzáférés (eff)</option>
       <option value="access_pop">PopScore</option>
-      <option value="station">StationScore</option>
+      <option value="hub">HubScore (pont-ellátottság)</option>
+      <option value="station">StationScore (állomás)</option>
       <option value="rail">RailScore (vonal-sűrűség)</option>
     </select>
   </div>
@@ -125,9 +126,9 @@
 
     <div class="small" style="margin-top:10px;"><b>Logisztika – Access összetétele</b></div>
     <div class="srow">
-      <label>Állomás súlya (α)</label>
-      <input id="alphaStation" type="range" min="0" max="100" value="50" />
-      <div class="val" id="alphaVal">0.50</div>
+      <label>HubScore súlya (α)</label>
+      <input id="alphaHub" type="range" min="0" max="100" value="55" />
+      <div class="val" id="alphaVal">0.55</div>
     </div>
     <div class="small" id="alphaHint">Aktív mód: Normál/Aszály → Access = PopScore</div>
 
@@ -146,12 +147,6 @@
   <div class="item"><span class="swatch" style="background:#9ecae1"></span>60–79</div>
   <div class="item"><span class="swatch" style="background:#6baed6"></span>80–100</div>
   <div class="item"><span class="swatch" style="background:#dddddd"></span>nincs adat</div>
-  <div style="margin-top:8px; border-top:1px solid #eee; padding-top:8px;">
-    <b>Vasút</b>
-    <div class="item"><span class="swatch" style="background:#222"></span>Vonal</div>
-    <div class="item"><span class="swatch" style="background:#0066ff"></span>Állomás</div>
-    <div class="item"><span class="swatch" style="background:#e74c3c"></span>Feldolgozó (OSM)</div>
-  </div>
 </div>
 
 <div id="map"></div>
@@ -184,7 +179,7 @@
   const chipRail = document.getElementById("chipRail");
   const chipProcessingOSM = document.getElementById("chipProcessingOSM");
 
-  const alphaStationEl = document.getElementById("alphaStation");
+  const alphaHubEl = document.getElementById("alphaHub");
   const alphaValEl = document.getElementById("alphaVal");
   const alphaHintEl = document.getElementById("alphaHint");
 
@@ -197,7 +192,7 @@
 
   let nutsLayer = null;
 
-  // logistics_food.geojson (régi pontok)
+  // logistics_food.geojson
   let pointsLayer = null;
   let pointsFC = null;
 
@@ -210,21 +205,20 @@
   let stationsFC = null;
   let showStations = false;
 
-  // processing_candidates.geojson (ÚJ, külön réteg)
+  // processing_candidates.geojson
   let procOSMLayer = null;
   let procOSMFC = null;
-  let showProcOSM = false; // alapból off
+  let showProcOSM = false;
 
-  // pont kapcsolók (régi pontokra)
   let showProcessing = true;
   let showHub = true;
   let showDistribution = true;
 
   let currentScenario = "normal"; // normal|drought|logistics|custom
 
-  // rawByNutsId: {prod, buffer, access_pop, rail, station, station_count}
+  // rawByNutsId: {prod, buffer, access_pop, rail, station, station_count, hub, hub_counts}
   let rawByNutsId = {};
-  // calcByNutsId: {prod, buffer, access_pop, rail, station, station_count, access, index}
+  // calcByNutsId: add access + index
   let calcByNutsId = {};
   let euroYear = "utolsó elérhető";
 
@@ -363,7 +357,7 @@
     if (s <= 0) return {wp:0.45, wa:0.35, wb:0.20};
     return {wp:w.wp/s, wa:w.wa/s, wb:w.wb/s};
   }
-  function readAlpha(){ return Number(alphaStationEl.value) / 100; }
+  function readAlpha(){ return Number(alphaHubEl.value) / 100; }
 
   function updateUI(){
     const w = readWeights();
@@ -375,16 +369,16 @@
 
     alphaValEl.textContent = readAlpha().toFixed(2);
     alphaHintEl.textContent = (currentScenario === "logistics")
-      ? "Aktív mód: Logisztika → Access = α·StationScore + (1–α)·PopScore"
+      ? "Aktív mód: Logisztika → Access = α·HubScore + (1–α)·PopScore"
       : "Aktív mód: Normál/Aszály → Access = PopScore (α nem számít)";
   }
 
-  function computeAccessEffective(popScore, stationScore){
+  function computeAccessEffective(popScore, hubScore){
     if (popScore == null || Number.isNaN(popScore)) return null;
     if (currentScenario !== "logistics") return popScore;
-    if (stationScore == null || Number.isNaN(stationScore)) return popScore;
+    if (hubScore == null || Number.isNaN(hubScore)) return popScore;
     const a = readAlpha();
-    return Math.round((a*stationScore + (1-a)*popScore)*10)/10;
+    return Math.round((a*hubScore + (1-a)*popScore)*10)/10;
   }
 
   function computeAll(){
@@ -393,7 +387,7 @@
     calcByNutsId = {};
     Object.keys(rawByNutsId).forEach(id=>{
       const r = rawByNutsId[id];
-      const accessEff = computeAccessEffective(r.access_pop, r.station);
+      const accessEff = computeAccessEffective(r.access_pop, r.hub);
 
       if (r.prod == null || accessEff == null || r.buffer == null || [r.prod, accessEff, r.buffer].some(x=>Number.isNaN(x))) {
         calcByNutsId[id] = { ...r, access: accessEff, index: null };
@@ -440,7 +434,7 @@
       currentScenario = "logistics";
       wProdEl.value=30; wAccessEl.value=55; wBufferEl.value=15;
       setActive(btnLogistics);
-      setScenarioLabel("Logisztika (30/55/15) — StationScore+Pop");
+      setScenarioLabel("Logisztika (30/55/15) — HubScore+Pop");
       metricSelect.value = "access";
     }
     refresh();
@@ -459,7 +453,7 @@
 
   metricSelect.addEventListener("change", ()=>{ if (nutsLayer) nutsLayer.setStyle(baseStyle); });
 
-  alphaStationEl.addEventListener("input", ()=>{
+  alphaHubEl.addEventListener("input", ()=>{
     if (currentScenario === "logistics") metricSelect.value = "access";
     refresh();
   });
@@ -485,6 +479,7 @@
     if (type === "distribution") return showDistribution;
     return true;
   }
+
   function rebuildPointsLayer(){
     if (!pointsFC) return;
     if (pointsLayer) { map.removeLayer(pointsLayer); pointsLayer = null; }
@@ -549,7 +544,7 @@
     if (stationsLayer && showStations) stationsLayer.bringToFront();
   };
 
-  // --- ÚJ: Feldolgozó jelöltek (processing_candidates.geojson) ---
+  // --- Feldolgozó jelöltek (processing_candidates.geojson) ---
   function buildProcOSMLayer(){
     if (!procOSMFC) return;
     if (procOSMLayer) { map.removeLayer(procOSMLayer); procOSMLayer = null; }
@@ -667,7 +662,7 @@
     return { scaledById, min, max };
   }
 
-  // StationScore: állomások száma vármegyén belül (bounds alapú) -> 0-100
+  // StationScore: állomások száma vármegyén belül -> 0-100
   function computeStationScoreByCounty(){
     if (!nutsLayer || !stationsFC) return { scoreById:{}, countById:{}, min:0, max:0 };
 
@@ -710,15 +705,90 @@
     return { scoreById, countById, min, max };
   }
 
+  // HubScore: összes logisztikai pont (3 típus + OSM processing) száma vármegyén belül -> 0-100
+  function computeHubScoreByCounty(){
+    if (!nutsLayer) return { hubById:{}, countsById:{}, min:0, max:0 };
+
+    const countsById = {};
+    nutsLayer.eachLayer(l=>{
+      const id = l.feature && l.feature.properties ? l.feature.properties.NUTS_ID : null;
+      if (id) countsById[id] = { processing:0, hub:0, distribution:0, osm_processing:0, total:0 };
+    });
+
+    function hitCounty(lat, lng){
+      const ll = L.latLng(lat, lng);
+      let hit = null;
+      nutsLayer.eachLayer(l=>{
+        if (hit) return;
+        if (l.getBounds && l.getBounds().contains(ll)){
+          hit = l.feature.properties.NUTS_ID;
+        }
+      });
+      return hit;
+    }
+
+    // 1) logistics_food pontok
+    if (pointsFC && pointsFC.features){
+      for (const f of pointsFC.features){
+        const g = f.geometry;
+        if (!g || g.type !== "Point") continue;
+        const lng = g.coordinates[0], lat = g.coordinates[1];
+        const id = hitCounty(lat, lng);
+        if (!id || !countsById[id]) continue;
+
+        const t = ((f.properties||{}).type || "").toLowerCase();
+        if (t === "processing") countsById[id].processing++;
+        else if (t === "logistics_hub") countsById[id].hub++;
+        else if (t === "distribution") countsById[id].distribution++;
+        countsById[id].total++;
+      }
+    }
+
+    // 2) OSM processing jelöltek
+    if (procOSMFC && procOSMFC.features){
+      for (const f of procOSMFC.features){
+        const g = f.geometry;
+        if (!g || g.type !== "Point") continue;
+        const lng = g.coordinates[0], lat = g.coordinates[1];
+        const id = hitCounty(lat, lng);
+        if (!id || !countsById[id]) continue;
+
+        countsById[id].osm_processing++;
+        countsById[id].total++;
+      }
+    }
+
+    const totals = Object.keys(countsById).map(id => countsById[id].total);
+    const min = Math.min(...totals);
+    const max = Math.max(...totals);
+
+    const hubById = {};
+    Object.keys(countsById).forEach(id=>{
+      const v = countsById[id].total;
+      let s = 0;
+      if (max === min) s = 50;
+      else s = ((v - min) / (max - min)) * 100;
+      hubById[id] = Math.round(s*10)/10;
+    });
+
+    return { hubById, countsById, min, max };
+  }
+
   function countyPopupHtml(feature){
     const id = feature.properties.NUTS_ID;
     const name = feature.properties.NAME_LATN || feature.properties.NUTS_NAME || "Terület";
     const d = calcByNutsId[id] || null;
     const a = readAlpha();
 
+    const hc = d && d.hub_counts ? d.hub_counts : null;
+
     const modeLine = (currentScenario==="logistics")
-      ? "<div style='font-size:11px;color:#555;margin-top:6px;'><b>Logisztika:</b> α="+a.toFixed(2)+" → Access = α·Station + (1–α)·Pop</div>"
+      ? "<div style='font-size:11px;color:#555;margin-top:6px;'><b>Logisztika:</b> α="+a.toFixed(2)+" → Access = α·Hub + (1–α)·Pop</div>"
       : "<div style='font-size:11px;color:#555;margin-top:6px;'><b>Normál/Aszály:</b> Access = Pop</div>";
+
+    const hubLine = (d && d.hub!=null)
+      ? ("<b>HubScore:</b> "+d.hub + (hc ? (" (össz: "+hc.total+", feld: "+hc.processing+" + OSM:"+hc.osm_processing+", hub: "+hc.hub+", elosztás: "+hc.distribution+")") : "") + "<br>")
+      : "<b>HubScore:</b> n/a<br>";
 
     const vals = d ? (
       "<b>Index:</b> " + (d.index==null?"n/a":d.index) + "<br>" +
@@ -726,6 +796,7 @@
       "<b>Buffer:</b> " + (d.buffer==null?"n/a":d.buffer) + "<br>" +
       "<b>Access (eff):</b> " + (d.access==null?"n/a":d.access) + "<br>" +
       "<b>PopScore:</b> " + (d.access_pop==null?"n/a":d.access_pop) + "<br>" +
+      hubLine +
       "<b>StationScore:</b> " + (d.station==null?"n/a":d.station) + " (db: " + (d.station_count||0) + ")<br>" +
       "<b>RailScore:</b> " + (d.rail==null?"n/a":d.rail)
     ) : "<i>Nincs adat</i>";
@@ -804,9 +875,11 @@
         prod: finalProd,
         buffer: (buffer != null ? Number(buffer) : null),
         access_pop: (pop != null ? Number(pop) : null),
+        rail: null,
         station: null,
         station_count: 0,
-        rail: null
+        hub: null,
+        hub_counts: null
       };
 
       if (rawByNutsId[nutsId].prod != null) prodCount++;
@@ -860,6 +933,42 @@
     return rs;
   }
 
+  // --- UI toggles / layers ---
+  function rebuildAfterToggles(){
+    if (railLayer && showRail) railLayer.bringToBack();
+    if (nutsLayer) nutsLayer.bringToFront();
+    if (pointsLayer) pointsLayer.bringToFront();
+    if (procOSMLayer && showProcOSM) procOSMLayer.bringToFront();
+    if (stationsLayer && showStations) stationsLayer.bringToFront();
+  }
+
+  chipRail.onclick = () => {
+    showRail = toggleChip(chipRail, showRail);
+    if (!railLayer) return;
+    if (showRail) railLayer.addTo(map); else map.removeLayer(railLayer);
+    rebuildAfterToggles();
+  };
+
+  chipStations.onclick = () => {
+    showStations = toggleChip(chipStations, showStations);
+    if (!stationsLayer) return;
+    if (showStations) stationsLayer.addTo(map); else map.removeLayer(stationsLayer);
+    rebuildAfterToggles();
+  };
+
+  chipProcessingOSM.onclick = () => {
+    showProcOSM = toggleChip(chipProcessingOSM, showProcOSM);
+    if (!procOSMLayer) return;
+    if (showProcOSM) procOSMLayer.addTo(map); else map.removeLayer(procOSMLayer);
+    rebuildAfterToggles();
+  };
+
+  function toggleChip(chipEl, current){
+    if (current) chipEl.classList.remove("on");
+    else chipEl.classList.add("on");
+    return !current;
+  }
+
   (async function init(){
     try {
       setStatus("betöltés…");
@@ -896,26 +1005,28 @@
         rawByNutsId[id].station_count = st.countById[id] ?? 0;
       });
 
+      // HubScore (pontok + OSM feldolgozó)
+      const hb = computeHubScoreByCounty();
+      Object.keys(rawByNutsId).forEach(id=>{
+        rawByNutsId[id].hub = hb.hubById[id] ?? null;
+        rawByNutsId[id].hub_counts = hb.countsById[id] ?? null;
+      });
+
       refresh();
 
       map.fitBounds(nutsLayer.getBounds(), { padding:[20,20] });
-
-      // réteg-sorrend
-      if (railLayer && showRail) railLayer.bringToBack();
-      if (nutsLayer) nutsLayer.bringToFront();
-      if (pointsLayer) pointsLayer.bringToFront();
-      if (procOSMLayer && showProcOSM) procOSMLayer.bringToFront();
-      if (stationsLayer && showStations) stationsLayer.bringToFront();
+      rebuildAfterToggles();
 
       setStatus(
         "<span class='ok'>OK</span> · prod: "+info.prodCount+
         " · buffer: "+info.bufferCount+
         " · pop: "+info.popCount+
         " · station db min/max: "+st.min+"/"+st.max+
+        " · hub total db min/max: "+hb.min+"/"+hb.max+
         " · rail min/max: "+railStat.min+"/"+railStat.max
       );
 
-      setSources("Adatok: KSH (kuk+búza, 2024) · baseline: food_index.csv · Eurostat DEMO_R_D3DENS ("+euroYear+") · vasútvonal: rail_lines.geojson · állomások: rail_stations.geojson · pontok: logistics_food.geojson · feldolgozó jelöltek: processing_candidates.geojson");
+      setSources("Adatok: KSH (kuk+búza, 2024) · baseline: food_index.csv · Eurostat DEMO_R_D3DENS ("+euroYear+") · vasútvonal: rail_lines.geojson · állomások: rail_stations.geojson · pontok: logistics_food.geojson · OSM feldolgozó: processing_candidates.geojson");
 
       applyScenario("normal");
 
