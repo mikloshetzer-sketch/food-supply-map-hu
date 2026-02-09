@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ellátásbiztonsági index – HU (szcenáriók + infrastruktúra pontok + szűrők)</title>
+  <title>Ellátásbiztonsági index – HU (pontok: környező index + súlyok)</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -91,7 +91,7 @@
 
 <div class="panel">
   <b>Ellátásbiztonsági index</b>
-  <span class="badge">VERZIÓ: MAP-V8-FILTERS</span>
+  <span class="badge">VERZIÓ: MAP-V9-POINTS-CONTEXT</span>
 
   <div class="row">
     <label><b>Mutató:</b></label>
@@ -110,7 +110,7 @@
   </div>
 
   <div class="row" style="margin-top:10px;">
-    <b>Pontok szűrése:</b>
+    <b>Pontok:</b>
     <span class="chip on" id="chipProcessing">Feldolgozó</span>
     <span class="chip on" id="chipHub">Csomópont</span>
     <span class="chip on" id="chipDistribution">Elosztás</span>
@@ -152,13 +152,6 @@
   <div class="item"><span class="swatch" style="background:#9ecae1"></span>60–79</div>
   <div class="item"><span class="swatch" style="background:#6baed6"></span>80–100</div>
   <div class="item"><span class="swatch" style="background:#dddddd"></span>nincs adat</div>
-
-  <div style="margin-top:8px; border-top:1px solid #eee; padding-top:8px;">
-    <b>Ellátási pontok</b>
-    <div class="item"><span class="swatch" style="background:#e74c3c; border-radius:50%"></span>Feldolgozó</div>
-    <div class="item"><span class="swatch" style="background:#3498db; border-radius:50%"></span>Logisztikai csomópont</div>
-    <div class="item"><span class="swatch" style="background:#2ecc71; border-radius:50%"></span>Elosztás / piac</div>
-  </div>
 </div>
 
 <div id="map"></div>
@@ -193,8 +186,7 @@
   function setScenarioLabel(text){ scenarioInfoEl.textContent = "Szcenárió: " + text; }
 
   const map = L.map('map').setView([47.16, 19.5], 7);
-  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' });
-  osm.addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
 
   let nutsLayer = null;
   let pointsLayer = null;
@@ -262,6 +254,11 @@
     return {wp:w.wp/s, wa:w.wa/s, wb:w.wb/s};
   }
 
+  function currentWeightsNormalized(){
+    const w = normalize(readWeights());
+    return { wp:w.wp, wa:w.wa, wb:w.wb };
+  }
+
   function updateWeightUI(){
     const w = readWeights();
     const s = w.wp + w.wa + w.wb;
@@ -298,7 +295,7 @@
     if (nutsLayer) nutsLayer.setStyle(baseStyle);
   }
 
-  // Szcenáriók = súlyprofilok
+  // Szcenáriók
   function setActive(btn){
     [btnNormal, btnDrought, btnLogistics].forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
@@ -418,7 +415,6 @@
     }[m]));
   }
 
-  // Pontok stílusa típus szerint (kör)
   function pointStyleByType(t){
     const type = (t || "").toLowerCase();
     if (type === "processing") return { color:"#000", weight:1, fillColor:"#e74c3c", fillOpacity:0.95, radius:7 };
@@ -435,6 +431,21 @@
     return true;
   }
 
+  function findRegionAtLatLng(latlng){
+    // végigmegyünk a HU NUTS3 poligonokon, és megnézzük melyik tartalmazza a pontot
+    let found = null;
+    if (!nutsLayer) return null;
+    nutsLayer.eachLayer(l=>{
+      if (!found && l.getBounds && l.getBounds().contains(latlng)) {
+        // bounds gyors szűrő; pontos pont-in-polygon Leaflet nélkül bonyolult,
+        // ezért itt a bounds-alapú közelítést használjuk (stratégiai pontokhoz elég).
+        const p = l.feature && l.feature.properties ? l.feature.properties : null;
+        if (p && p.NUTS_ID) found = { id: p.NUTS_ID, name: p.NAME_LATN || p.NUTS_NAME || p.NUTS_ID };
+      }
+    });
+    return found;
+  }
+
   function rebuildPointsLayer(){
     if (!pointsFC) return;
     if (pointsLayer) { map.removeLayer(pointsLayer); pointsLayer = null; }
@@ -447,22 +458,48 @@
         return L.circleMarker(latlng, s);
       },
       onEachFeature: function(feature, layer){
-        const p = feature.properties || {};
-        const name = p.name || "Pont";
-        const type = p.type || "unknown";
-        const cat = p.category || "";
-        const imp = p.importance || "";
-        const note = p.note || "";
-        const src = p.source || "";
-        const html =
-          "<b>"+escapeHtml(name)+"</b>" +
-          "<br><span style='font-size:12px;color:#555'>"+escapeHtml(type)+"</span>" +
-          (cat ? "<br><b>Kategória:</b> "+escapeHtml(cat) : "") +
-          (imp ? "<br><b>Jelentőség:</b> "+escapeHtml(imp) : "") +
-          (note ? "<br><b>Megjegyzés:</b> "+escapeHtml(note) : "") +
-          (src ? "<hr style='border:none;border-top:1px solid #eee;margin:8px 0'/>" +
-                 "<span style='font-size:11px;color:#666'><b>Forrás:</b> "+escapeHtml(src)+"</span>" : "");
-        layer.bindPopup(html);
+        layer.on("click", function(){
+          const p = feature.properties || {};
+          const name = p.name || "Pont";
+          const type = p.type || "unknown";
+          const cat = p.category || "";
+          const imp = p.importance || "";
+          const note = p.note || "";
+          const src = p.source || "";
+
+          const here = findRegionAtLatLng(layer.getLatLng());
+          let regionHtml = "<i>Régió: nem azonosítható (bounds-proxy)</i>";
+          if (here && calcByNutsId[here.id]) {
+            const d = calcByNutsId[here.id];
+            regionHtml =
+              "<b>Kapcsolt régió:</b> " + escapeHtml(here.name) + " ("+escapeHtml(here.id)+")" +
+              "<br><b>Index:</b> " + (d.index==null?"n/a":d.index) +
+              "<br><b>Prod:</b> " + (d.prod==null?"n/a":d.prod) +
+              "<br><b>Buffer:</b> " + (d.buffer==null?"n/a":d.buffer) +
+              "<br><b>Access:</b> " + (d.access==null?"n/a":d.access);
+          }
+
+          const w = currentWeightsNormalized();
+          const weightHtml =
+            "<b>Aktuális súlyok:</b> " +
+            "Prod " + w.wp.toFixed(2) + ", " +
+            "Access " + w.wa.toFixed(2) + ", " +
+            "Buffer " + w.wb.toFixed(2);
+
+          const html =
+            "<b>"+escapeHtml(name)+"</b>" +
+            "<br><span style='font-size:12px;color:#555'>"+escapeHtml(type)+"</span>" +
+            (cat ? "<br><b>Kategória:</b> "+escapeHtml(cat) : "") +
+            (imp ? "<br><b>Jelentőség:</b> "+escapeHtml(imp) : "") +
+            (note ? "<br><b>Megjegyzés:</b> "+escapeHtml(note) : "") +
+            "<hr style='border:none;border-top:1px solid #eee;margin:8px 0'/>" +
+            regionHtml +
+            "<br>" + weightHtml +
+            (src ? "<hr style='border:none;border-top:1px solid #eee;margin:8px 0'/>" +
+                   "<span style='font-size:11px;color:#666'><b>Forrás:</b> "+escapeHtml(src)+"</span>" : "");
+
+          layer.bindPopup(html).openPopup();
+        });
       }
     });
 
@@ -588,7 +625,6 @@
       const info = await loadAllData();
 
       nutsLayer = L.geoJSON(hu, { style: baseStyle }).addTo(map);
-
       await loadPoints();
 
       map.fitBounds(nutsLayer.getBounds(), { padding:[20,20] });
