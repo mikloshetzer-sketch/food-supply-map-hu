@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ellátásbiztonsági index – HU (Rail lines + Stations + α)</title>
+  <title>Ellátásbiztonsági index – HU (Lines + Stations + OSM Processing)</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -18,7 +18,7 @@
       padding:10px 12px;
       border:1px solid #ddd;
       border-radius:12px;
-      max-width:880px;
+      max-width:920px;
       font-size:13px; line-height:1.25;
       box-shadow:0 3px 10px rgba(0,0,0,0.12);
     }
@@ -44,7 +44,7 @@
 
     .sliders{ margin-top:8px; border-top:1px solid #eee; padding-top:8px; }
     .srow{ display:flex; align-items:center; gap:6px; margin-top:6px; }
-    .srow label{ width:160px; font-weight:700; font-size:12px; }
+    .srow label{ width:180px; font-weight:700; font-size:12px; }
     .srow input[type="range"]{ width:210px; }
     .val{ width:56px; text-align:right; font-size:12px; font-variant-numeric: tabular-nums; }
     .small{ font-size:11px; color:#444; margin-top:6px; }
@@ -53,7 +53,7 @@
       position:absolute; right:10px; bottom:10px; z-index:9999;
       background: rgba(255,255,255,0.96);
       padding:10px 12px; border:1px solid #ddd; border-radius:10px;
-      font-size:12px; line-height:1.2; min-width:240px;
+      font-size:12px; line-height:1.2; min-width:250px;
       box-shadow:0 3px 10px rgba(0,0,0,0.10);
     }
     .legend .item{ display:flex; align-items:center; gap:6px; margin-top:4px; }
@@ -67,7 +67,7 @@
 
 <div class="panel">
   <b>Ellátásbiztonsági index</b>
-  <span class="badge">VERZIÓ: MAP-V18-LINES+STATIONS</span>
+  <span class="badge">VERZIÓ: MAP-V19-OSM-PROCESSING</span>
 
   <div class="row">
     <label><b>Mutató:</b></label>
@@ -94,6 +94,7 @@
     <span class="chip on" id="chipHub">Csomópont</span>
     <span class="chip on" id="chipDistribution">Elosztás</span>
     <span class="chip" id="chipStations">Vasútállomások</span>
+    <span class="chip" id="chipProcessingOSM">Feldolgozó (OSM)</span>
   </div>
 
   <div class="row" style="margin-top:6px;">
@@ -128,7 +129,7 @@
       <input id="alphaStation" type="range" min="0" max="100" value="50" />
       <div class="val" id="alphaVal">0.50</div>
     </div>
-    <div class="small" id="alphaHint">Aktív mód: Normál/Aszály → Access = Pop</div>
+    <div class="small" id="alphaHint">Aktív mód: Normál/Aszály → Access = PopScore</div>
 
     <div class="small" id="sumInfo">Súlyösszeg = 1.00</div>
     <div class="small" id="scenarioInfo">Szcenárió: Normál (45/35/20)</div>
@@ -149,6 +150,7 @@
     <b>Vasút</b>
     <div class="item"><span class="swatch" style="background:#222"></span>Vonal</div>
     <div class="item"><span class="swatch" style="background:#0066ff"></span>Állomás</div>
+    <div class="item"><span class="swatch" style="background:#e74c3c"></span>Feldolgozó (OSM)</div>
   </div>
 </div>
 
@@ -180,6 +182,7 @@
   const chipDistribution = document.getElementById("chipDistribution");
   const chipStations = document.getElementById("chipStations");
   const chipRail = document.getElementById("chipRail");
+  const chipProcessingOSM = document.getElementById("chipProcessingOSM");
 
   const alphaStationEl = document.getElementById("alphaStation");
   const alphaValEl = document.getElementById("alphaVal");
@@ -194,7 +197,7 @@
 
   let nutsLayer = null;
 
-  // logistics_food.geojson
+  // logistics_food.geojson (régi pontok)
   let pointsLayer = null;
   let pointsFC = null;
 
@@ -207,7 +210,12 @@
   let stationsFC = null;
   let showStations = false;
 
-  // pont kapcsolók
+  // processing_candidates.geojson (ÚJ, külön réteg)
+  let procOSMLayer = null;
+  let procOSMFC = null;
+  let showProcOSM = false; // alapból off
+
+  // pont kapcsolók (régi pontokra)
   let showProcessing = true;
   let showHub = true;
   let showDistribution = true;
@@ -462,7 +470,7 @@
     return !current;
   }
 
-  // --- LOGISZTIKAI PONTOK (logistics_food.geojson) ---
+  // --- régi pontok (logistics_food.geojson) ---
   function pointStyleByType(t){
     const type = (t || "").toLowerCase();
     if (type === "processing") return { color:"#000", weight:1, fillColor:"#e74c3c", fillOpacity:0.95, radius:7 };
@@ -477,7 +485,6 @@
     if (type === "distribution") return showDistribution;
     return true;
   }
-
   function rebuildPointsLayer(){
     if (!pointsFC) return;
     if (pointsLayer) { map.removeLayer(pointsLayer); pointsLayer = null; }
@@ -495,6 +502,7 @@
 
     pointsLayer.addTo(map);
     if (pointsLayer) pointsLayer.bringToFront();
+    if (procOSMLayer && showProcOSM) procOSMLayer.bringToFront();
     if (stationsLayer && showStations) stationsLayer.bringToFront();
   }
 
@@ -502,7 +510,7 @@
   chipHub.onclick = () => { showHub = toggleChip(chipHub, showHub); rebuildPointsLayer(); };
   chipDistribution.onclick = () => { showDistribution = toggleChip(chipDistribution, showDistribution); rebuildPointsLayer(); };
 
-  // --- VASÚTÁLLOMÁSOK (rail_stations.geojson) ---
+  // --- Vasútállomások (rail_stations.geojson) ---
   function buildStationsLayer(){
     if (!stationsFC) return;
     if (stationsLayer) { map.removeLayer(stationsLayer); stationsLayer = null; }
@@ -537,10 +545,55 @@
     if (railLayer && showRail) railLayer.bringToBack();
     if (nutsLayer) nutsLayer.bringToFront();
     if (pointsLayer) pointsLayer.bringToFront();
+    if (procOSMLayer && showProcOSM) procOSMLayer.bringToFront();
     if (stationsLayer && showStations) stationsLayer.bringToFront();
   };
 
-  // --- VASÚTVONAL (rail_lines.geojson) + kapcsoló ---
+  // --- ÚJ: Feldolgozó jelöltek (processing_candidates.geojson) ---
+  function buildProcOSMLayer(){
+    if (!procOSMFC) return;
+    if (procOSMLayer) { map.removeLayer(procOSMLayer); procOSMLayer = null; }
+
+    procOSMLayer = L.geoJSON(procOSMFC, {
+      pointToLayer: function(feature, latlng){
+        return L.circleMarker(latlng, {
+          radius: 5,
+          color: "#7a0b00",
+          weight: 1,
+          fillColor: "#e74c3c",
+          fillOpacity: 0.90
+        });
+      },
+      onEachFeature: function(feature, layer){
+        const p = feature.properties || {};
+        const tags = p.tags || {};
+        const name = p.name || tags.name || "Feldolgozó jelölt";
+        const note =
+          (tags.industrial ? ("industrial="+tags.industrial) : "") ||
+          (tags.man_made ? ("man_made="+tags.man_made) : "") ||
+          (tags.craft ? ("craft="+tags.craft) : "") ||
+          (tags.historic ? ("historic="+tags.historic) : "");
+        layer.bindPopup("<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#555'>"+escapeHtml(note)+"</span>");
+      }
+    });
+
+    if (showProcOSM) procOSMLayer.addTo(map);
+  }
+
+  chipProcessingOSM.onclick = () => {
+    showProcOSM = toggleChip(chipProcessingOSM, showProcOSM);
+    if (!procOSMLayer) return;
+    if (showProcOSM) procOSMLayer.addTo(map);
+    else map.removeLayer(procOSMLayer);
+
+    if (railLayer && showRail) railLayer.bringToBack();
+    if (nutsLayer) nutsLayer.bringToFront();
+    if (pointsLayer) pointsLayer.bringToFront();
+    if (procOSMLayer && showProcOSM) procOSMLayer.bringToFront();
+    if (stationsLayer && showStations) stationsLayer.bringToFront();
+  };
+
+  // --- Vasútvonal (rail_lines.geojson) + kapcsoló ---
   chipRail.onclick = () => {
     showRail = toggleChip(chipRail, showRail);
     if (!railLayer) return;
@@ -551,10 +604,11 @@
     if (showRail && railLayer) railLayer.bringToBack();
     if (nutsLayer) nutsLayer.bringToFront();
     if (pointsLayer) pointsLayer.bringToFront();
+    if (procOSMLayer && showProcOSM) procOSMLayer.bringToFront();
     if (stationsLayer && showStations) stationsLayer.bringToFront();
   };
 
-  // --- RailScore: vasútvonal koordinátapontok sűrűsége -> 0-100 ---
+  // RailScore: vasútvonal koordinátapontok sűrűsége -> 0-100
   function computeRailScoreByCounty(railFC){
     if (!nutsLayer) return { scaledById:{}, min:0, max:0 };
 
@@ -613,7 +667,7 @@
     return { scaledById, min, max };
   }
 
-  // --- StationScore: állomások száma vármegyén belül (gyors, bounds alapú) -> 0-100 ---
+  // StationScore: állomások száma vármegyén belül (bounds alapú) -> 0-100
   function computeStationScoreByCounty(){
     if (!nutsLayer || !stationsFC) return { scoreById:{}, countById:{}, min:0, max:0 };
 
@@ -779,6 +833,14 @@
     buildStationsLayer();
   }
 
+  async function loadProcOSM(){
+    procOSMFC = await fetch("data/processing_candidates.geojson", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("processing_candidates.geojson HTTP " + r.status);
+      return r.json();
+    });
+    buildProcOSMLayer();
+  }
+
   async function loadRailLines(){
     const railFC = await fetch("data/rail_lines.geojson", { cache:"no-store" }).then(r=>{
       if(!r.ok) throw new Error("rail_lines.geojson HTTP " + r.status);
@@ -804,7 +866,6 @@
       setSources("");
       updateUI();
 
-      // NUTS3 HU geometria
       const nutsUrl = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson";
       const fc = await fetch(nutsUrl, { cache:"no-store" }).then(r=>{
         if(!r.ok) throw new Error("GISCO HTTP " + r.status);
@@ -823,12 +884,12 @@
         }
       }).addTo(map);
 
-      // rétegek + pontszámok
       const railStat = await loadRailLines();
       await loadPoints();
       await loadStations();
+      await loadProcOSM();
 
-      // StationScore kiszámítás (most már van nutsLayer + stationsFC)
+      // StationScore
       const st = computeStationScoreByCounty();
       Object.keys(rawByNutsId).forEach(id=>{
         rawByNutsId[id].station = st.scoreById[id] ?? null;
@@ -843,6 +904,7 @@
       if (railLayer && showRail) railLayer.bringToBack();
       if (nutsLayer) nutsLayer.bringToFront();
       if (pointsLayer) pointsLayer.bringToFront();
+      if (procOSMLayer && showProcOSM) procOSMLayer.bringToFront();
       if (stationsLayer && showStations) stationsLayer.bringToFront();
 
       setStatus(
@@ -853,7 +915,7 @@
         " · rail min/max: "+railStat.min+"/"+railStat.max
       );
 
-      setSources("Adatok: KSH (kuk+búza, 2024) · baseline: food_index.csv · Eurostat DEMO_R_D3DENS ("+euroYear+") · vasútvonal: rail_lines.geojson · állomások: rail_stations.geojson · pontok: logistics_food.geojson");
+      setSources("Adatok: KSH (kuk+búza, 2024) · baseline: food_index.csv · Eurostat DEMO_R_D3DENS ("+euroYear+") · vasútvonal: rail_lines.geojson · állomások: rail_stations.geojson · pontok: logistics_food.geojson · feldolgozó jelöltek: processing_candidates.geojson");
 
       applyScenario("normal");
 
