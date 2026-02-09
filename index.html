@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ellátásbiztonsági index – HU (vármegye popup + pontok + vasút)</title>
+  <title>Ellátásbiztonsági index – HU (vármegye popup + pontok + vasút kapcsoló)</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -18,7 +18,7 @@
       padding:10px 12px;
       border:1px solid #ddd;
       border-radius:12px;
-      max-width:680px;
+      max-width:720px;
       font-size:13px; line-height:1.25;
       box-shadow:0 3px 10px rgba(0,0,0,0.12);
     }
@@ -67,7 +67,7 @@
 
 <div class="panel">
   <b>Ellátásbiztonsági index</b>
-  <span class="badge">VERZIÓ: MAP-V11-RAIL</span>
+  <span class="badge">VERZIÓ: MAP-V12-RAIL-TOGGLE</span>
 
   <div class="row">
     <label><b>Mutató:</b></label>
@@ -90,6 +90,11 @@
     <span class="chip on" id="chipProcessing">Feldolgozó</span>
     <span class="chip on" id="chipHub">Csomópont</span>
     <span class="chip on" id="chipDistribution">Elosztás</span>
+  </div>
+
+  <div class="row" style="margin-top:6px;">
+    <b>Vonalak:</b>
+    <span class="chip on" id="chipRail">Vasút</span>
   </div>
 
   <div class="sliders">
@@ -131,7 +136,7 @@
 
   <div style="margin-top:8px; border-top:1px solid #eee; padding-top:8px;">
     <b>Rétegek</b>
-    <div class="item"><span class="swatch" style="background:#444"></span>Vasút (OSM)</div>
+    <div class="item"><span class="swatch" style="background:#222"></span>Vasút (OSM)</div>
   </div>
 </div>
 
@@ -161,6 +166,7 @@
   const chipProcessing = document.getElementById("chipProcessing");
   const chipHub = document.getElementById("chipHub");
   const chipDistribution = document.getElementById("chipDistribution");
+  const chipRail = document.getElementById("chipRail");
 
   function setStatus(html){ statusEl.innerHTML = "Státusz: " + html; }
   function setSources(html){ sourcesEl.innerHTML = html || ""; }
@@ -177,9 +183,10 @@
   let showProcessing = true;
   let showHub = true;
   let showDistribution = true;
+  let showRail = true;
 
-  let rawByNutsId = {};   // NUTS_ID -> { prod, access, buffer }
-  let calcByNutsId = {};  // NUTS_ID -> { prod, access, buffer, index }
+  let rawByNutsId = {};
+  let calcByNutsId = {};
   let euroYear = "utolsó elérhető";
 
   function escapeHtml(s){
@@ -278,7 +285,7 @@
     if (nutsLayer) nutsLayer.setStyle(baseStyle);
   }
 
-  // Szcenáriók (súlyprofilok)
+  // Szcenáriók
   function setActive(btn){
     [btnNormal, btnDrought, btnLogistics].forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
@@ -312,7 +319,7 @@
   }));
   metricSelect.addEventListener("change", ()=>{ if (nutsLayer) nutsLayer.setStyle(baseStyle); });
 
-  // Pont szín típus szerint
+  // Pontok
   function pointStyleByType(t){
     const type = (t || "").toLowerCase();
     if (type === "processing") return { color:"#000", weight:1, fillColor:"#e74c3c", fillOpacity:0.95, radius:7 };
@@ -335,6 +342,19 @@
   chipProcessing.onclick = () => { showProcessing = toggleChip(chipProcessing, showProcessing); rebuildPointsLayer(); };
   chipHub.onclick = () => { showHub = toggleChip(chipHub, showHub); rebuildPointsLayer(); };
   chipDistribution.onclick = () => { showDistribution = toggleChip(chipDistribution, showDistribution); rebuildPointsLayer(); };
+
+  // VASÚT kapcsoló
+  chipRail.onclick = () => {
+    showRail = toggleChip(chipRail, showRail);
+    if (!railLayer) return;
+    if (showRail) railLayer.addTo(map);
+    else map.removeLayer(railLayer);
+
+    // sorrend
+    if (showRail && railLayer) railLayer.bringToBack();
+    if (nutsLayer) nutsLayer.bringToFront();
+    if (pointsLayer) pointsLayer.bringToFront();
+  };
 
   // Régió hozzárendelés pontokhoz: gyors bounds-proxy
   function findRegionAtLatLng(latlng){
@@ -402,6 +422,7 @@
     });
 
     pointsLayer.addTo(map);
+    if (pointsLayer) pointsLayer.bringToFront();
   }
 
   // Excel olvasás (2024 oszlop)
@@ -484,7 +505,6 @@
   }
 
   async function loadAllData(){
-    // baseline buffer
     const foodText = await fetch("data/food_index.csv", { cache:"no-store" }).then(r=>{
       if(!r.ok) throw new Error("food_index.csv HTTP " + r.status);
       return r.text();
@@ -497,14 +517,12 @@
       if (id) baselineByNuts[id] = Number.isFinite(b) ? b : null;
     });
 
-    // mapping NUTS_ID -> KSH név
     const mapText = await fetch("data/nuts3_to_ksh_county.csv", { cache:"no-store" }).then(r=>{
       if(!r.ok) throw new Error("nuts3_to_ksh_county.csv HTTP " + r.status);
       return r.text();
     });
     const nutsToKsh = parseMappingCSV(mapText);
 
-    // kukorica
     const cornAB = await fetch("data/kukoricatermesatlag.xlsx", { cache:"no-store" }).then(r=>{
       if(!r.ok) throw new Error("kukoricatermesatlag.xlsx HTTP " + r.status);
       return r.arrayBuffer();
@@ -514,7 +532,6 @@
     if (!Object.keys(cornEx.valuesByName).length) throw new Error("Kukorica Excel kiolvasás sikertelen: " + cornEx.reason);
     const cornScaled = scaleTo0_100(cornEx.valuesByName);
 
-    // búza
     const wheatAB = await fetch("data/buzatermesatlag.xlsx", { cache:"no-store" }).then(r=>{
       if(!r.ok) throw new Error("buzatermesatlag.xlsx HTTP " + r.status);
       return r.arrayBuffer();
@@ -524,7 +541,6 @@
     if (!Object.keys(wheatEx.valuesByName).length) throw new Error("Búza Excel kiolvasás sikertelen: " + wheatEx.reason);
     const wheatScaled = scaleTo0_100(wheatEx.valuesByName);
 
-    // Eurostat access (népsűrűség, utolsó időszak)
     const base = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/DEMO_R_D3DENS";
     const euroUrl = base + "?lang=EN&format=JSON&freq=A&unit=PER_KM2&lastTimePeriod=1&geo=HU110&geo=HU120&geo=HU211&geo=HU212&geo=HU213&geo=HU221&geo=HU222&geo=HU223&geo=HU231&geo=HU232&geo=HU233&geo=HU311&geo=HU312&geo=HU313&geo=HU321&geo=HU322&geo=HU323&geo=HU331&geo=HU332&geo=HU333";
     const euroJson = await fetch(euroUrl, { cache:"no-store" }).then(r=>{
@@ -536,7 +552,6 @@
     const densRaw = parseJsonStatGeoValues(euroJson);
     const densScaled = scaleTo0_100(densRaw);
 
-    // összerakás
     rawByNutsId = {};
     let prodCount = 0, bufferCount = 0, accessCount = 0;
 
@@ -552,7 +567,7 @@
           ? Math.round(((Number(corn)+Number(wheat))/2)*10)/10
           : null;
 
-      const finalProd = (nutsId === "HU110") ? null : prod; // Budapest szándékosan nincs termelési adat
+      const finalProd = (nutsId === "HU110") ? null : prod;
 
       rawByNutsId[nutsId] = {
         prod: finalProd,
@@ -585,15 +600,18 @@
 
     if (railLayer) { map.removeLayer(railLayer); railLayer = null; }
 
+    // ERŐSEBB megjelenés:
+    // - sötétebb szín (#222)
+    // - vastagabb (3)
+    // - nagyobb opacitás (0.95)
     railLayer = L.geoJSON(railFC, {
       style: function(){
-        return { color:"#444", weight:2, opacity:0.7 };
+        return { color:"#222", weight:3, opacity:0.95 };
       }
     });
 
-    // Vasalat: vasút az alapon, de a megye kitöltés alatt/felett nem kritikus.
-    railLayer.addTo(map);
-    railLayer.bringToBack(); // alapra (tile fölé, de minden más alá igyekszik)
+    if (showRail) railLayer.addTo(map);
+    railLayer.bringToBack();
   }
 
   function countyPopupHtml(feature){
@@ -638,7 +656,6 @@
 
       const info = await loadAllData();
 
-      // Megyék (NUTS3) réteg
       nutsLayer = L.geoJSON(hu, {
         style: baseStyle,
         onEachFeature: function(feature, layer){
@@ -648,16 +665,13 @@
         }
       }).addTo(map);
 
-      // Vasút réteg (OSM GeoJSON)
       await loadRail();
-
-      // Pontok
       await loadPoints();
 
       map.fitBounds(nutsLayer.getBounds(), { padding:[20,20] });
 
-      // a z-index sorrend finomhangolása
-      if (railLayer) railLayer.bringToBack();
+      // sorrend
+      if (railLayer && showRail) railLayer.bringToBack();
       if (nutsLayer) nutsLayer.bringToFront();
       if (pointsLayer) pointsLayer.bringToFront();
 
