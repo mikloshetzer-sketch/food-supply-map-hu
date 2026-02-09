@@ -1,0 +1,207 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-02-09T12:01:35Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "relation/9769391",
+        "addr:city": "Tiszapalkonya",
+        "addr:housenumber": "1",
+        "addr:postcode": "3587",
+        "addr:street": "Malom utca",
+        "contact:email": "tiszapalkonya@goodmills.hu",
+        "contact:fax": "+36 49 814 075",
+        "contact:phone": "+36 49 814 053",
+        "contact:website": "https://www.goodmills.hu/hu/malmok/tiszapalkonyai-malom/",
+        "industrial": "grinding_mill",
+        "landuse": "industrial",
+        "name": "Tiszapalkonyai malom",
+        "opening_hours": "Mo-Th 06:00-18:00; Fr 06:00-16:00",
+        "operator": "Goodmills Magyarország Malomipari Kft.",
+        "operator:website": "https://www.goodmills.hu/hu/",
+        "start_date": "2011-02",
+        "type": "multipolygon",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          21.0454314,
+          47.8852503
+        ]
+      },
+      "id": "relation/9769391"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "relation/12160948",
+        "industrial": "grinding_mill",
+        "landuse": "industrial",
+        "name": "Váci Malom",
+        "type": "multipolygon",
+        "url": "http://www.vacimalom.hu",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.1361626,
+          47.7804178
+        ]
+      },
+      "id": "relation/12160948"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "relation/18714478",
+        "addr:city": "Veszprém",
+        "addr:housenumber": "48",
+        "addr:postcode": "8411",
+        "addr:street": "Vasút utca",
+        "addr:suburb": "Kádárta",
+        "contact:website": "http://www.szatmarimalom.hu/telephely_veszpterkep.html",
+        "industrial": "grinding_mill",
+        "landuse": "industrial",
+        "name": "Szatmári Malom Veszprém-Kádárta",
+        "type": "multipolygon",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          17.9537035,
+          47.1290136
+        ]
+      },
+      "id": "relation/18714478"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/423849741",
+        "building": "yes",
+        "building:levels": "5",
+        "industrial": "grinding_mill",
+        "name": "Malom",
+        "name:de": "Mühle",
+        "name:en": "Mill",
+        "roof:shape": "gabled",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          18.7162183,
+          46.3444189
+        ]
+      },
+      "id": "way/423849741"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/474493459",
+        "addr:city": "Szeged",
+        "addr:housenumber": "2",
+        "addr:postcode": "6728",
+        "addr:street": "Napos út",
+        "contact:email": "szeged@szatmarimalom.hu",
+        "contact:fax": "+36 62 814 658",
+        "contact:phone": "+36 62 814 650",
+        "contact:website": "http://www.szatmarimalom.hu/telephelyek.html",
+        "industrial": "grinding_mill",
+        "landuse": "industrial",
+        "name": "Szatmári Malom Kft.",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.1192923,
+          46.2660213
+        ]
+      },
+      "id": "way/474493459"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/611761430",
+        "industrial": "grinding_mill",
+        "landuse": "industrial",
+        "name": "Csongrádi Malom",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.133653,
+          46.7147402
+        ]
+      },
+      "id": "way/611761430"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/848611197",
+        "fixme": "verify",
+        "man_made": "mill",
+        "name": "Kiss Sándor daráló malma"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.7432915,
+          46.4817609
+        ]
+      },
+      "id": "node/848611197"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1071915587",
+        "description": "Mü-Gu Kft. fémhulladék feldolgozó telep",
+        "industrial": "grinding_mill",
+        "landuse": "industrial",
+        "name": "Mü-Gu Kft.",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.180135,
+          47.3314704
+        ]
+      },
+      "id": "way/1071915587"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3473637769",
+        "description": "több tíz éve lakatlan",
+        "man_made": "mill",
+        "name": "Malomrom",
+        "ruins": "yes",
+        "source": "turistautak.hu",
+        "source:date": "2010-04-28",
+        "url": "http://turistautak.hu/poi.php?id=10661"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.40155,
+          47.409867
+        ]
+      },
+      "id": "node/3473637769"
+    }
+  ]
+}
