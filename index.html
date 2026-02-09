@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ellátásbiztonsági index – HU (vármegye popup + pontok + szűrők + szcenáriók)</title>
+  <title>Ellátásbiztonsági index – HU (vármegye popup + pontok + vasút)</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -12,62 +12,62 @@
     body { margin: 0; font-family: Arial, sans-serif; }
     #map { height: 100vh; }
 
-    .panel {
-      position: absolute; top: 10px; left: 10px; z-index: 9999;
+    .panel{
+      position:absolute; top:10px; left:10px; z-index:9999;
       background: rgba(255,255,255,0.94);
-      padding: 10px 12px;
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      max-width: 680px;
-      font-size: 13px; line-height: 1.25;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+      padding:10px 12px;
+      border:1px solid #ddd;
+      border-radius:12px;
+      max-width:680px;
+      font-size:13px; line-height:1.25;
+      box-shadow:0 3px 10px rgba(0,0,0,0.12);
     }
-    .badge {
-      display:inline-block; padding: 2px 8px; border: 1px solid #333;
-      border-radius: 999px; font-size: 11px; margin-left: 6px; background:#fff;
+    .badge{
+      display:inline-block; padding:2px 8px; border:1px solid #333;
+      border-radius:999px; font-size:11px; margin-left:6px; background:#fff;
     }
-    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top: 6px; }
-    select { padding: 3px 5px; font-size: 13px; }
+    .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:6px; }
+    select{ padding:3px 5px; font-size:13px; }
 
-    .btn {
-      padding: 4px 8px; border: 1px solid #333; background: #fff;
-      border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 12px;
+    .btn{
+      padding:4px 8px; border:1px solid #333; background:#fff;
+      border-radius:8px; cursor:pointer; font-weight:700; font-size:12px;
     }
-    .btn.active { background: #333; color: #fff; }
+    .btn.active{ background:#333; color:#fff; }
 
-    .chip {
-      padding: 4px 8px; border: 1px solid #333; background: #fff;
-      border-radius: 999px; cursor: pointer; font-weight: 700; font-size: 12px;
-      user-select: none;
+    .chip{
+      padding:4px 8px; border:1px solid #333; background:#fff;
+      border-radius:999px; cursor:pointer; font-weight:700; font-size:12px;
+      user-select:none;
     }
-    .chip.on { background: #333; color: #fff; }
+    .chip.on{ background:#333; color:#fff; }
 
-    .sliders { margin-top: 8px; border-top: 1px solid #eee; padding-top: 8px; }
-    .srow { display:flex; align-items:center; gap:6px; margin-top: 6px; }
-    .srow label { width: 62px; font-weight: 700; font-size: 12px; }
-    .srow input[type="range"] { width: 170px; }
-    .val { width: 44px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
-    .small { font-size: 11px; color:#444; margin-top: 6px; }
+    .sliders{ margin-top:8px; border-top:1px solid #eee; padding-top:8px; }
+    .srow{ display:flex; align-items:center; gap:6px; margin-top:6px; }
+    .srow label{ width:62px; font-weight:700; font-size:12px; }
+    .srow input[type="range"]{ width:170px; }
+    .val{ width:44px; text-align:right; font-size:12px; font-variant-numeric: tabular-nums; }
+    .small{ font-size:11px; color:#444; margin-top:6px; }
 
-    .legend {
-      position: absolute; right: 10px; bottom: 10px; z-index: 9999;
+    .legend{
+      position:absolute; right:10px; bottom:10px; z-index:9999;
       background: rgba(255,255,255,0.96);
-      padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px;
-      font-size: 12px; line-height: 1.2; min-width: 210px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.10);
+      padding:10px 12px; border:1px solid #ddd; border-radius:10px;
+      font-size:12px; line-height:1.2; min-width:210px;
+      box-shadow:0 3px 10px rgba(0,0,0,0.10);
     }
-    .legend .item { display:flex; align-items:center; gap:6px; margin-top:4px; }
-    .swatch { width: 12px; height: 12px; border-radius: 2px; border:1px solid rgba(0,0,0,.2); }
+    .legend .item{ display:flex; align-items:center; gap:6px; margin-top:4px; }
+    .swatch{ width:12px; height:12px; border-radius:2px; border:1px solid rgba(0,0,0,.2); }
 
-    .ok { color:#0a7; font-weight:700; }
-    .err { color:#b00; font-weight:700; }
+    .ok{ color:#0a7; font-weight:700; }
+    .err{ color:#b00; font-weight:700; }
   </style>
 </head>
 <body>
 
 <div class="panel">
   <b>Ellátásbiztonsági index</b>
-  <span class="badge">VERZIÓ: MAP-V10-COUNTY-POPUP</span>
+  <span class="badge">VERZIÓ: MAP-V11-RAIL</span>
 
   <div class="row">
     <label><b>Mutató:</b></label>
@@ -128,6 +128,11 @@
   <div class="item"><span class="swatch" style="background:#9ecae1"></span>60–79</div>
   <div class="item"><span class="swatch" style="background:#6baed6"></span>80–100</div>
   <div class="item"><span class="swatch" style="background:#dddddd"></span>nincs adat</div>
+
+  <div style="margin-top:8px; border-top:1px solid #eee; padding-top:8px;">
+    <b>Rétegek</b>
+    <div class="item"><span class="swatch" style="background:#444"></span>Vasút (OSM)</div>
+  </div>
 </div>
 
 <div id="map"></div>
@@ -167,14 +172,14 @@
   let nutsLayer = null;
   let pointsLayer = null;
   let pointsFC = null;
+  let railLayer = null;
 
   let showProcessing = true;
   let showHub = true;
   let showDistribution = true;
 
-  // rawByNutsId: NUTS_ID -> { prod, access, buffer }
-  let rawByNutsId = {};
-  let calcByNutsId = {};
+  let rawByNutsId = {};   // NUTS_ID -> { prod, access, buffer }
+  let calcByNutsId = {};  // NUTS_ID -> { prod, access, buffer, index }
   let euroYear = "utolsó elérhető";
 
   function escapeHtml(s){
@@ -519,7 +524,7 @@
     if (!Object.keys(wheatEx.valuesByName).length) throw new Error("Búza Excel kiolvasás sikertelen: " + wheatEx.reason);
     const wheatScaled = scaleTo0_100(wheatEx.valuesByName);
 
-    // Eurostat access
+    // Eurostat access (népsűrűség, utolsó időszak)
     const base = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/DEMO_R_D3DENS";
     const euroUrl = base + "?lang=EN&format=JSON&freq=A&unit=PER_KM2&lastTimePeriod=1&geo=HU110&geo=HU120&geo=HU211&geo=HU212&geo=HU213&geo=HU221&geo=HU222&geo=HU223&geo=HU231&geo=HU232&geo=HU233&geo=HU311&geo=HU312&geo=HU313&geo=HU321&geo=HU322&geo=HU323&geo=HU331&geo=HU332&geo=HU333";
     const euroJson = await fetch(euroUrl, { cache:"no-store" }).then(r=>{
@@ -547,7 +552,7 @@
           ? Math.round(((Number(corn)+Number(wheat))/2)*10)/10
           : null;
 
-      const finalProd = (nutsId === "HU110") ? null : prod;
+      const finalProd = (nutsId === "HU110") ? null : prod; // Budapest szándékosan nincs termelési adat
 
       rawByNutsId[nutsId] = {
         prod: finalProd,
@@ -570,6 +575,25 @@
       return r.json();
     });
     rebuildPointsLayer();
+  }
+
+  async function loadRail(){
+    const railFC = await fetch("data/rail_lines.geojson", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("rail_lines.geojson HTTP " + r.status);
+      return r.json();
+    });
+
+    if (railLayer) { map.removeLayer(railLayer); railLayer = null; }
+
+    railLayer = L.geoJSON(railFC, {
+      style: function(){
+        return { color:"#444", weight:2, opacity:0.7 };
+      }
+    });
+
+    // Vasalat: vasút az alapon, de a megye kitöltés alatt/felett nem kritikus.
+    railLayer.addTo(map);
+    railLayer.bringToBack(); // alapra (tile fölé, de minden más alá igyekszik)
   }
 
   function countyPopupHtml(feature){
@@ -614,6 +638,7 @@
 
       const info = await loadAllData();
 
+      // Megyék (NUTS3) réteg
       nutsLayer = L.geoJSON(hu, {
         style: baseStyle,
         onEachFeature: function(feature, layer){
@@ -623,12 +648,21 @@
         }
       }).addTo(map);
 
+      // Vasút réteg (OSM GeoJSON)
+      await loadRail();
+
+      // Pontok
       await loadPoints();
 
       map.fitBounds(nutsLayer.getBounds(), { padding:[20,20] });
 
+      // a z-index sorrend finomhangolása
+      if (railLayer) railLayer.bringToBack();
+      if (nutsLayer) nutsLayer.bringToFront();
+      if (pointsLayer) pointsLayer.bringToFront();
+
       setStatus("<span class='ok'>OK</span> · prod: "+info.prodCount+" · buffer: "+info.bufferCount+" · access: "+info.accessCount);
-      setSources("Források: KSH (kuk+búza, 2024) · baseline: food_index.csv · Eurostat DEMO_R_D3DENS ("+euroYear+") · pontok: logistics_food.geojson");
+      setSources("Források: KSH (kuk+búza, 2024) · baseline: food_index.csv · Eurostat DEMO_R_D3DENS ("+euroYear+") · pontok: logistics_food.geojson · vasút: rail_lines.geojson (OSM)");
 
       applyScenario("normal");
 
