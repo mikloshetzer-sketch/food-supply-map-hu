@@ -1,0 +1,5 @@
+[out:json][timeout:180];
+(
+  way["railway"="rail"]["service"!="yard"]["service"!="siding"]["service"!="spur"]["service"!="industrial"](45.7,16.1,48.7,22.95);
+);
+out geom;
