@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ellátásbiztonsági index – HU (Hub + Transport + Lisztmalmok)</title>
+  <title>Ellátásbiztonsági index – HU (Hub + Transport + Malmok)</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -12,26 +12,26 @@
     body { margin: 0; font-family: Arial, sans-serif; }
     #map { height: 100vh; }
 
-    /* ===== Panel: keskenyebb, hosszúkás, görgethető ===== */
+    /* Keskenyebb, hosszúkásabb panel */
     .panel{
       position:absolute; top:10px; left:10px; z-index:9999;
       background: rgba(255,255,255,0.94);
       padding:10px 12px;
       border:1px solid #ddd;
       border-radius:12px;
-      width: 360px;
-      max-width: 360px;
-      max-height: 92vh;
-      overflow: auto;
+      width: 360px;              /* keskeny */
+      max-height: calc(100vh - 20px);
+      overflow: auto;            /* hosszúkás -> görgethető */
       font-size:13px; line-height:1.25;
       box-shadow:0 3px 10px rgba(0,0,0,0.12);
     }
+
     .badge{
       display:inline-block; padding:2px 8px; border:1px solid #333;
       border-radius:999px; font-size:11px; margin-left:6px; background:#fff;
     }
     .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:6px; }
-    select{ padding:3px 5px; font-size:13px; }
+    select{ padding:3px 5px; font-size:13px; width: 100%; }
 
     .btn{
       padding:4px 8px; border:1px solid #333; background:#fff;
@@ -48,8 +48,8 @@
 
     .sliders{ margin-top:8px; border-top:1px solid #eee; padding-top:8px; }
     .srow{ display:flex; align-items:center; gap:6px; margin-top:6px; }
-    .srow label{ width:180px; font-weight:700; font-size:12px; }
-    .srow input[type="range"]{ width:140px; }
+    .srow label{ width:150px; font-weight:700; font-size:12px; }
+    .srow input[type="range"]{ flex:1; }
     .val{ width:56px; text-align:right; font-size:12px; font-variant-numeric: tabular-nums; }
     .small{ font-size:11px; color:#444; margin-top:6px; }
 
@@ -57,14 +57,13 @@
       position:absolute; right:10px; bottom:10px; z-index:9999;
       background: rgba(255,255,255,0.96);
       padding:10px 12px; border:1px solid #ddd; border-radius:10px;
-      font-size:12px; line-height:1.2; min-width:290px;
+      font-size:12px; line-height:1.2; min-width:280px;
       box-shadow:0 3px 10px rgba(0,0,0,0.10);
+      max-height: calc(100vh - 20px);
+      overflow: auto;
     }
     .legend .item{ display:flex; align-items:center; gap:6px; margin-top:4px; }
     .swatch{ width:12px; height:12px; border-radius:2px; border:1px solid rgba(0,0,0,.2); }
-    .dot{ width:12px; height:12px; border-radius:999px; border:2px solid #000; box-sizing:border-box; }
-    .line{ width:24px; height:0; border-top:4px solid #222; border-radius:2px; }
-    .sep{ border-top:1px solid #eee; margin:8px 0; }
 
     .ok{ color:#0a7; font-weight:700; }
     .warn{ color:#b57b00; font-weight:700; }
@@ -75,10 +74,10 @@
 
 <div class="panel">
   <b>Ellátásbiztonsági index</b>
-  <span class="badge">VERZIÓ: MAP-V24-FLOUR</span>
+  <span class="badge">VERZIÓ: MAP-V24</span>
 
   <div class="row">
-    <label><b>Mutató:</b></label>
+    <label style="width:100%"><b>Mutató:</b></label>
     <select id="metric">
       <option value="index">Index</option>
       <option value="prod">Termelés (kuk+búza)</option>
@@ -106,7 +105,7 @@
     <span class="chip on" id="chipDistribution">Elosztás</span>
     <span class="chip" id="chipStations">Vasútállomások</span>
     <span class="chip" id="chipProcessingOSM">Feldolgozó (OSM)</span>
-    <span class="chip on" id="chipFlour">Lisztmalmok</span>
+    <span class="chip on" id="chipMills">Lisztmalmok</span>
   </div>
 
   <div class="row" style="margin-top:6px;">
@@ -164,12 +163,10 @@
   </div>
 </div>
 
-<!-- ===== BŐVÍTETT jelmagyarázat ===== -->
 <div class="legend">
   <b>Jelmagyarázat</b>
 
-  <div class="sep"></div>
-  <div><b>Megye színezés (0–100)</b></div>
+  <div style="margin-top:8px;"><b>Megye színezés</b></div>
   <div class="item"><span class="swatch" style="background:#f7fbff"></span>0–19</div>
   <div class="item"><span class="swatch" style="background:#deebf7"></span>20–39</div>
   <div class="item"><span class="swatch" style="background:#c6dbef"></span>40–59</div>
@@ -177,17 +174,25 @@
   <div class="item"><span class="swatch" style="background:#6baed6"></span>80–100</div>
   <div class="item"><span class="swatch" style="background:#dddddd"></span>nincs adat</div>
 
-  <div class="sep"></div>
-  <div><b>Pontok</b></div>
-  <div class="item"><span class="dot" style="background:#e74c3c"></span>Feldolgozó</div>
-  <div class="item"><span class="dot" style="background:#3498db"></span>Csomópont</div>
-  <div class="item"><span class="dot" style="background:#2ecc71"></span>Elosztás</div>
-  <div class="item"><span class="dot" style="background:#0066ff"></span>Vasútállomás</div>
-  <div class="item"><span class="dot" style="background:#8e44ad"></span>Lisztmalom</div>
+  <hr style="border:none;border-top:1px solid #eee;margin:10px 0;">
 
-  <div class="sep"></div>
-  <div><b>Vonalak</b></div>
-  <div class="item"><span class="line"></span>Vasútvonal</div>
+  <b>Pontok</b>
+  <div class="item"><span class="swatch" style="background:#e74c3c"></span>Feldolgozó</div>
+  <div class="item"><span class="swatch" style="background:#3498db"></span>Csomópont</div>
+  <div class="item"><span class="swatch" style="background:#2ecc71"></span>Elosztás</div>
+  <div class="item"><span class="swatch" style="background:#8e44ad"></span>Lisztmalom</div>
+  <div class="item"><span class="swatch" style="background:#e74c3c;border:1px dashed rgba(0,0,0,.35)"></span>Feldolgozó (OSM)</div>
+  <div class="item"><span class="swatch" style="background:#0066ff"></span>Vasútállomás</div>
+
+  <hr style="border:none;border-top:1px solid #eee;margin:10px 0;">
+
+  <b>Vasút</b>
+  <div class="item"><span class="swatch" style="background:#222"></span>Vasútvonal</div>
+
+  <hr style="border:none;border-top:1px solid #eee;margin:10px 0;">
+
+  <b>HubScore súlyok</b>
+  <div id="hubWeightsLegend" style="margin-top:6px;"></div>
 </div>
 
 <div id="map"></div>
@@ -196,13 +201,13 @@
 <script>
 (function(){
   // ===== HUB súlyok (fix) =====
-  // Megjegyzés: takarmány kivéve, lisztmalmok hozzáadva
+  // Feldolgozó / OSM / Csomópont / Elosztás / Lisztmalom
   const HUB_WEIGHTS = {
     processing: 1.00,
     osm_processing: 0.80,
     logistics_hub: 0.70,
     distribution: 0.50,
-    flour_mill: 0.85
+    flour_mill: 0.90
   };
 
   const statusEl = document.getElementById("status");
@@ -229,7 +234,7 @@
   const chipStations = document.getElementById("chipStations");
   const chipRail = document.getElementById("chipRail");
   const chipProcessingOSM = document.getElementById("chipProcessingOSM");
-  const chipFlour = document.getElementById("chipFlour");
+  const chipMills = document.getElementById("chipMills");
 
   const alphaEl = document.getElementById("alpha");
   const gammaEl = document.getElementById("gamma");
@@ -262,10 +267,10 @@
   let procOSMFC = null;
   let showProcOSM = false;
 
-  // Lisztmalmok
-  let flourLayer = null;
-  let flourFC = null;
-  let showFlour = true;
+  // Flour mills layer
+  let millsLayer = null;
+  let millsFC = null;
+  let showMills = true;
 
   let showProcessing = true;
   let showHub = true;
@@ -548,6 +553,7 @@
     refresh();
   }));
 
+  // ===== Réteg toggles + pontok =====
   function toggleChip(chipEl, current){
     if (current) chipEl.classList.remove("on");
     else chipEl.classList.add("on");
@@ -574,7 +580,7 @@
     if (nutsLayer) nutsLayer.bringToFront();
     if (pointsLayer) pointsLayer.bringToFront();
     if (procOSMLayer && showProcOSM) procOSMLayer.bringToFront();
-    if (flourLayer && showFlour) flourLayer.bringToFront();
+    if (millsLayer && showMills) millsLayer.bringToFront();
     if (stationsLayer && showStations) stationsLayer.bringToFront();
   }
 
@@ -597,9 +603,9 @@
     rebuildAfterToggles();
   }
 
-  chipProcessing.onclick = () => { showProcessing = toggleChip(chipProcessing, showProcessing); rebuildPointsLayer(); };
-  chipHub.onclick = () => { showHub = toggleChip(chipHub, showHub); rebuildPointsLayer(); };
-  chipDistribution.onclick = () => { showDistribution = toggleChip(chipDistribution, showDistribution); rebuildPointsLayer(); };
+  chipProcessing.onclick = () => { showProcessing = toggleChip(chipProcessing, showProcessing); rebuildPointsLayer(); recalcHubAndRefresh(); };
+  chipHub.onclick = () => { showHub = toggleChip(chipHub, showHub); rebuildPointsLayer(); recalcHubAndRefresh(); };
+  chipDistribution.onclick = () => { showDistribution = toggleChip(chipDistribution, showDistribution); rebuildPointsLayer(); recalcHubAndRefresh(); };
 
   function buildStationsLayer(){
     if (!stationsFC) return;
@@ -632,7 +638,7 @@
 
     procOSMLayer = L.geoJSON(procOSMFC, {
       pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
-        radius: 5, color: "#7a0b00", weight: 1, fillColor: "#e74c3c", fillOpacity: 0.90
+        radius: 5, color: "#7a0b00", weight: 1, fillColor: "#e74c3c", fillOpacity: 0.90, dashArray: "2,2"
       }),
       onEachFeature: function(feature, layer){
         const p = feature.properties || {};
@@ -655,49 +661,36 @@
     if (!procOSMLayer) return;
     if (showProcOSM) procOSMLayer.addTo(map); else map.removeLayer(procOSMLayer);
     rebuildAfterToggles();
+    recalcHubAndRefresh();
   };
 
-  // ===== Lisztmalmok layer =====
-  function buildFlourLayer(){
-    if (!flourFC) return;
-    if (flourLayer) { map.removeLayer(flourLayer); flourLayer = null; }
+  // Lisztmalmok
+  function buildMillsLayer(){
+    if (!millsFC) return;
+    if (millsLayer) { map.removeLayer(millsLayer); millsLayer = null; }
 
-    flourLayer = L.geoJSON(flourFC, {
+    millsLayer = L.geoJSON(millsFC, {
       pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
-        radius: 6,
-        color: "#000", weight: 1,
-        fillColor: "#8e44ad", fillOpacity: 0.95
+        radius: 6, color: "#000", weight: 1, fillColor: "#8e44ad", fillOpacity: 0.95
       }),
       onEachFeature: function(feature, layer){
         const p = feature.properties || {};
-        const name = p.company || p.name || p.title || "Lisztmalom";
-        const addr = p.address || p.cím || p.cim || "";
-        const link = p.map_link || p.terkep_link || p.Terkep_link || p.link || "";
-        const linkHtml = link ? `<br><a href="${escapeHtml(link)}" target="_blank" rel="noopener">Térkép</a>` : "";
-        layer.bindPopup("<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#555'>"+escapeHtml(addr)+"</span>"+linkHtml);
+        const name = p.company || p.name || "Lisztmalom";
+        const addr = p.address || p.cim || p["cím"] || "";
+        layer.bindPopup("<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#555'>"+escapeHtml(addr)+"</span>");
       }
     });
 
-    if (showFlour) flourLayer.addTo(map);
+    if (showMills) millsLayer.addTo(map);
     rebuildAfterToggles();
   }
 
-  chipFlour.onclick = () => {
-    showFlour = toggleChip(chipFlour, showFlour);
-    if (!flourLayer) return;
-    if (showFlour) flourLayer.addTo(map); else map.removeLayer(flourLayer);
+  chipMills.onclick = () => {
+    showMills = toggleChip(chipMills, showMills);
+    if (!millsLayer) return;
+    if (showMills) millsLayer.addTo(map); else map.removeLayer(millsLayer);
     rebuildAfterToggles();
-
-    // hub-score újraszámítás, mert a lisztmalom beleszámít
-    if (nutsLayer) {
-      const hb = computeHubScoreWeightedByCounty();
-      Object.keys(rawByNutsId).forEach(id=>{
-        rawByNutsId[id].hub = hb.hubById[id] ?? null;
-        rawByNutsId[id].hub_counts = hb.countsById[id] ?? null;
-        rawByNutsId[id].hub_wsum = (id in hb.wsumById) ? hb.wsumById[id] : null;
-      });
-      refresh();
-    }
+    recalcHubAndRefresh();
   };
 
   chipRail.onclick = () => {
@@ -706,6 +699,24 @@
     if (showRail) railLayer.addTo(map); else map.removeLayer(railLayer);
     rebuildAfterToggles();
   };
+
+  function renderHubWeightsLegend(){
+    const el = document.getElementById("hubWeightsLegend");
+    if (!el) return;
+    const rows = [
+      ["Feldolgozó", HUB_WEIGHTS.processing],
+      ["Feldolgozó (OSM)", HUB_WEIGHTS.osm_processing],
+      ["Csomópont (hub)", HUB_WEIGHTS.logistics_hub],
+      ["Elosztás", HUB_WEIGHTS.distribution],
+      ["Lisztmalom", HUB_WEIGHTS.flour_mill]
+    ];
+    el.innerHTML = rows.map(([label, w]) =>
+      `<div class="item" style="justify-content:space-between;">
+         <span>${label}</span>
+         <span style="font-variant-numeric:tabular-nums;"><b>${Number(w).toFixed(2)}</b></span>
+       </div>`
+    ).join("");
+  }
 
   // ===== pontszám: rail/station/hub =====
   function computeRailScoreByCounty(railFC){
@@ -833,7 +844,7 @@
       return hit;
     }
 
-    // logistics_food pontok
+    // logistics_food: csak a látható típusok számítsanak
     if (pointsFC && pointsFC.features){
       for (const f of pointsFC.features){
         const g = f.geometry;
@@ -843,15 +854,14 @@
         if (!id || !countsById[id]) continue;
 
         const t = ((f.properties||{}).type || "").toLowerCase();
-        if (t === "processing") { countsById[id].processing++; wsumById[id] += HUB_WEIGHTS.processing; }
-        else if (t === "logistics_hub") { countsById[id].hub++; wsumById[id] += HUB_WEIGHTS.logistics_hub; }
-        else if (t === "distribution") { countsById[id].distribution++; wsumById[id] += HUB_WEIGHTS.distribution; }
-        countsById[id].total++;
+        if (t === "processing" && showProcessing) { countsById[id].processing++; wsumById[id] += HUB_WEIGHTS.processing; countsById[id].total++; }
+        else if (t === "logistics_hub" && showHub) { countsById[id].hub++; wsumById[id] += HUB_WEIGHTS.logistics_hub; countsById[id].total++; }
+        else if (t === "distribution" && showDistribution) { countsById[id].distribution++; wsumById[id] += HUB_WEIGHTS.distribution; countsById[id].total++; }
       }
     }
 
-    // OSM processing
-    if (procOSMFC && procOSMFC.features){
+    // OSM feldolgozó
+    if (showProcOSM && procOSMFC && procOSMFC.features){
       for (const f of procOSMFC.features){
         const g = f.geometry;
         if (!g || g.type !== "Point") continue;
@@ -865,9 +875,9 @@
       }
     }
 
-    // Lisztmalmok (csak ha látható a layer)
-    if (showFlour && flourFC && flourFC.features){
-      for (const f of flourFC.features){
+    // Lisztmalmok
+    if (showMills && millsFC && millsFC.features){
+      for (const f of millsFC.features){
         const g = f.geometry;
         if (!g || g.type !== "Point") continue;
         const lng = g.coordinates[0], lat = g.coordinates[1];
@@ -894,6 +904,17 @@
     });
 
     return { hubById, countsById, wsumById, min, max };
+  }
+
+  function recalcHubAndRefresh(){
+    if (!nutsLayer) return;
+    const hb = computeHubScoreWeightedByCounty();
+    Object.keys(rawByNutsId).forEach(id=>{
+      rawByNutsId[id].hub = hb.hubById[id] ?? null;
+      rawByNutsId[id].hub_counts = hb.countsById[id] ?? null;
+      rawByNutsId[id].hub_wsum = (id in hb.wsumById) ? hb.wsumById[id] : null;
+    });
+    refresh();
   }
 
   function countyPopupHtml(feature){
@@ -1043,15 +1064,6 @@
     buildProcOSMLayer();
   }
 
-  async function loadFlourMills(){
-    flourFC = await fetch("data/industrial_flour_mills.geojson", { cache:"no-store" }).then(r=>{
-      if(!r.ok) throw new Error("industrial_flour_mills.geojson HTTP " + r.status);
-      return r.json();
-    });
-    buildFlourLayer();
-    return { count:(flourFC.features||[]).length };
-  }
-
   async function loadRailLines(){
     const railFC = await fetch("data/rail_lines.geojson", { cache:"no-store" }).then(r=>{
       if(!r.ok) throw new Error("rail_lines.geojson HTTP " + r.status);
@@ -1071,12 +1083,21 @@
     return rs;
   }
 
+  async function loadFlourMills(){
+    millsFC = await fetch("data/industrial_flour_mills.geojson", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("industrial_flour_mills.geojson HTTP " + r.status);
+      return r.json();
+    });
+    buildMillsLayer();
+  }
+
   // ===== init =====
   (async function init(){
     try {
       setStatus("betöltés…");
       setSources("");
       updateUI();
+      renderHubWeightsLegend();
 
       const nutsUrl = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson";
       const fc = await fetch(nutsUrl, { cache:"no-store" }).then(r=>{
@@ -1100,7 +1121,7 @@
       await loadPoints();
       await loadStations();
       await loadProcOSM();
-      const flourRes = await loadFlourMills();
+      await loadFlourMills();
 
       const st = computeStationScoreByCounty();
       Object.keys(rawByNutsId).forEach(id=>{
@@ -1108,7 +1129,7 @@
         rawByNutsId[id].station_count = st.countById[id] ?? 0;
       });
 
-      // hub-score (beleveszi a lisztmalmokat is)
+      // HubScore (beleértve lisztmalmok)
       const hb = computeHubScoreWeightedByCounty();
       Object.keys(rawByNutsId).forEach(id=>{
         rawByNutsId[id].hub = hb.hubById[id] ?? null;
@@ -1122,11 +1143,10 @@
       rebuildAfterToggles();
 
       setStatus(
-        `<span class='ok'>OK</span>` +
-        ` · Station min/max: ${st.min}/${st.max}` +
+        `<span class='ok'>OK</span> · Station min/max: ${st.min}/${st.max}` +
         ` · HubW min/max: ${hb.min.toFixed(2)}/${hb.max.toFixed(2)}` +
         ` · Rail min/max: ${railStat.min}/${railStat.max}` +
-        ` · lisztmalmok: ${flourRes.count}`
+        ` · Lisztmalmok: ${(millsFC && millsFC.features) ? millsFC.features.length : 0}`
       );
 
       setSources(
