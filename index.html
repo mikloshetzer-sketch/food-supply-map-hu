@@ -100,6 +100,8 @@
     <span class="chip" id="chipStations">Vasútállomások</span>
     <span class="chip" id="chipProcessingOSM">Feldolgozó (OSM)</span>
     <span class="chip on" id="chipFeed">Takarmány</span>
+    <!-- ÚJ: lisztmalmok (csak megjelenítés, nem számít bele a score-okba) -->
+    <span class="chip" id="chipFlour">Lisztmalmok (GPS)</span>
   </div>
 
   <div class="row" style="margin-top:6px;">
@@ -206,6 +208,8 @@
   const chipRail = document.getElementById("chipRail");
   const chipProcessingOSM = document.getElementById("chipProcessingOSM");
   const chipFeed = document.getElementById("chipFeed");
+  // ÚJ: lisztmalom chip
+  const chipFlour = document.getElementById("chipFlour");
 
   const alphaEl = document.getElementById("alpha");
   const gammaEl = document.getElementById("gamma");
@@ -242,6 +246,11 @@
   let feedLayer = null;
   let feedFC = null;
   let showFeed = true;
+
+  // ÚJ: flour mills (csak megjelenítés)
+  let flourLayer = null;
+  let flourFC = null;
+  let showFlour = false;
 
   let showProcessing = true;
   let showHub = true;
@@ -552,6 +561,7 @@
     if (pointsLayer) pointsLayer.bringToFront();
     if (procOSMLayer && showProcOSM) procOSMLayer.bringToFront();
     if (feedLayer && showFeed) feedLayer.bringToFront();
+    if (flourLayer && showFlour) flourLayer.bringToFront();
     if (stationsLayer && showStations) stationsLayer.bringToFront();
   }
 
@@ -678,6 +688,44 @@
     showRail = toggleChip(chipRail, showRail);
     if (!railLayer) return;
     if (showRail) railLayer.addTo(map); else map.removeLayer(railLayer);
+    rebuildAfterToggles();
+  };
+
+  // ===== ÚJ: LISZTMALMOK (csak megjelenítés) =====
+  function buildFlourLayer(){
+    if (!flourFC) return;
+    if (flourLayer) { map.removeLayer(flourLayer); flourLayer = null; }
+
+    flourLayer = L.geoJSON(flourFC, {
+      pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+        radius: 6,
+        color: "#000", weight: 1,
+        fillColor: "#8e44ad", fillOpacity: 0.95
+      }),
+      onEachFeature: function(feature, layer){
+        const p = feature.properties || {};
+        const name = p.name || p.company || "Lisztmalom";
+        const addr = p.address || p.cim || p["cím"] || "";
+        layer.bindPopup("<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#555'>"+escapeHtml(addr)+"</span>");
+      }
+    });
+
+    if (showFlour) flourLayer.addTo(map);
+    rebuildAfterToggles();
+  }
+
+  async function loadFlourMills(){
+    const r = await fetch("data/industrial_flour_mills.geojson", { cache:"no-store" });
+    if(!r.ok) throw new Error("industrial_flour_mills.geojson HTTP " + r.status);
+    flourFC = await r.json();
+    buildFlourLayer();
+    return { count:(flourFC.features||[]).length };
+  }
+
+  chipFlour.onclick = () => {
+    showFlour = toggleChip(chipFlour, showFlour);
+    if (!flourLayer) return;
+    if (showFlour) flourLayer.addTo(map); else map.removeLayer(flourLayer);
     rebuildAfterToggles();
   };
 
@@ -1132,6 +1180,15 @@
       // FEED betöltés (nem töri el a többit)
       const feedRes = await loadFeedMills();
 
+      // ÚJ: lisztmalmok betöltés (ha nincs fájl, nem állítjuk le az egészet)
+      let flourRes = null;
+      try {
+        flourRes = await loadFlourMills();
+      } catch (e) {
+        console.warn("Lisztmalmok betöltési hiba:", e.message);
+        flourRes = { count:0, note:e.message };
+      }
+
       const st = computeStationScoreByCounty();
       Object.keys(rawByNutsId).forEach(id=>{
         rawByNutsId[id].station = st.scoreById[id] ?? null;
@@ -1158,10 +1215,14 @@
       else if (feedRes.mode === "xlsx" && feedRes.count === 0) feedMsg = ` · <span class="warn">takarmány: nincs pont</span> (${escapeHtml(feedRes.note||"")})`;
       else feedMsg = ` · <span class="warn">takarmány: nincs betöltés</span>`;
 
+      let flourMsg = "";
+      if (flourRes && flourRes.count > 0) flourMsg = ` · lisztmalmok (geojson): ${flourRes.count}`;
+      else flourMsg = ` · lisztmalmok: 0`;
+
       setStatus(
         `<span class='ok'>OK</span> · Station min/max: ${st.min}/${st.max}` +
         ` · HubW min/max: ${hb.min.toFixed(2)}/${hb.max.toFixed(2)}` +
-        ` · Rail min/max: ${railStat.min}/${railStat.max}` + feedMsg
+        ` · Rail min/max: ${railStat.min}/${railStat.max}` + feedMsg + flourMsg
       );
 
       setSources(
