@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ellátásbiztonsági index – HU (Hub + Transport + Malmok)</title>
+  <title>Ellátásbiztonsági index – HU (Hub + Transport + Lisztmalmok)</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -12,23 +12,20 @@
     body { margin: 0; font-family: Arial, sans-serif; }
     #map { height: 100vh; }
 
-    /* ===== ÚJ: keskeny, hosszúkás panel ===== */
+    /* ===== Panel: keskenyebb, hosszúkás, görgethető ===== */
     .panel{
       position:absolute; top:10px; left:10px; z-index:9999;
       background: rgba(255,255,255,0.94);
       padding:10px 12px;
       border:1px solid #ddd;
       border-radius:12px;
-
-      width:360px;
-      max-width:360px;
-      max-height:92vh;
-      overflow:auto;
-
+      width: 360px;
+      max-width: 360px;
+      max-height: 92vh;
+      overflow: auto;
       font-size:13px; line-height:1.25;
       box-shadow:0 3px 10px rgba(0,0,0,0.12);
     }
-
     .badge{
       display:inline-block; padding:2px 8px; border:1px solid #333;
       border-radius:999px; font-size:11px; margin-left:6px; background:#fff;
@@ -53,42 +50,46 @@
     .srow{ display:flex; align-items:center; gap:6px; margin-top:6px; }
     .srow label{ width:180px; font-weight:700; font-size:12px; }
     .srow input[type="range"]{ width:140px; }
-    .val{ width:46px; text-align:right; font-size:12px; font-variant-numeric: tabular-nums; }
+    .val{ width:56px; text-align:right; font-size:12px; font-variant-numeric: tabular-nums; }
     .small{ font-size:11px; color:#444; margin-top:6px; }
 
     .legend{
       position:absolute; right:10px; bottom:10px; z-index:9999;
       background: rgba(255,255,255,0.96);
       padding:10px 12px; border:1px solid #ddd; border-radius:10px;
-      font-size:12px; line-height:1.2; min-width:280px;
+      font-size:12px; line-height:1.2; min-width:290px;
       box-shadow:0 3px 10px rgba(0,0,0,0.10);
     }
     .legend .item{ display:flex; align-items:center; gap:6px; margin-top:4px; }
     .swatch{ width:12px; height:12px; border-radius:2px; border:1px solid rgba(0,0,0,.2); }
     .dot{ width:12px; height:12px; border-radius:999px; border:2px solid #000; box-sizing:border-box; }
-    .line{ width:22px; height:0; border-top:4px solid #222; border-radius:2px; }
+    .line{ width:24px; height:0; border-top:4px solid #222; border-radius:2px; }
+    .sep{ border-top:1px solid #eee; margin:8px 0; }
 
     .ok{ color:#0a7; font-weight:700; }
     .warn{ color:#b57b00; font-weight:700; }
     .err{ color:#b00; font-weight:700; }
-    .sep{ border-top:1px solid #eee; margin:8px 0; }
   </style>
 </head>
 <body>
 
 <div class="panel">
   <b>Ellátásbiztonsági index</b>
-  <span class="badge">VERZIÓ: MAP-V24</span>
+  <span class="badge">VERZIÓ: MAP-V24-FLOUR</span>
 
   <div class="row">
     <label><b>Mutató:</b></label>
     <select id="metric">
       <option value="index">Index</option>
-      <option value="prod">Termelés</option>
-      <option value="buffer">Tartalék</option>
-      <option value="access">Hozzáférés</option>
-      <option value="hub">HubScore</option>
-      <option value="transport">TransportScore</option>
+      <option value="prod">Termelés (kuk+búza)</option>
+      <option value="buffer">Tartalék (baseline)</option>
+      <option value="access">Hozzáférés (eff)</option>
+      <option value="access_pop">PopScore</option>
+      <option value="hub">HubScore (súlyozott)</option>
+      <option value="transport">TransportScore (vasút)</option>
+      <option value="logi">LogiScore (hub+vasút)</option>
+      <option value="station">StationScore</option>
+      <option value="rail">RailScore</option>
     </select>
   </div>
 
@@ -105,7 +106,7 @@
     <span class="chip on" id="chipDistribution">Elosztás</span>
     <span class="chip" id="chipStations">Vasútállomások</span>
     <span class="chip" id="chipProcessingOSM">Feldolgozó (OSM)</span>
-    <span class="chip" id="chipFlour">Lisztmalmok</span>
+    <span class="chip on" id="chipFlour">Lisztmalmok</span>
   </div>
 
   <div class="row" style="margin-top:6px;">
@@ -114,7 +115,7 @@
   </div>
 
   <div class="sliders">
-    <div class="small"><b>Súlyok</b></div>
+    <div class="small"><b>Súlyok</b> (összeg 1-re normalizálva)</div>
 
     <div class="srow">
       <label>Prod</label>
@@ -134,20 +135,47 @@
       <div class="val" id="wBufferVal">0.20</div>
     </div>
 
+    <div class="small" style="margin-top:10px;"><b>Logisztika – összetétel</b></div>
+
+    <div class="srow">
+      <label>Logi vs Pop (α)</label>
+      <input id="alpha" type="range" min="0" max="100" value="55" />
+      <div class="val" id="alphaVal">0.55</div>
+    </div>
+
+    <div class="srow">
+      <label>Hub vs Transport (γ)</label>
+      <input id="gamma" type="range" min="0" max="100" value="60" />
+      <div class="val" id="gammaVal">0.60</div>
+    </div>
+
+    <div class="srow">
+      <label>Station vs Rail (β)</label>
+      <input id="beta" type="range" min="0" max="100" value="60" />
+      <div class="val" id="betaVal">0.60</div>
+    </div>
+
+    <div class="small" id="alphaHint">Aktív mód: Normál/Aszály → Access = PopScore</div>
+
+    <div class="small" id="sumInfo">Súlyösszeg = 1.00</div>
+    <div class="small" id="scenarioInfo">Szcenárió: Normál (45/35/20)</div>
     <div class="small" id="status">Státusz: betöltés…</div>
+    <div class="small" id="sources"></div>
   </div>
 </div>
 
+<!-- ===== BŐVÍTETT jelmagyarázat ===== -->
 <div class="legend">
   <b>Jelmagyarázat</b>
 
   <div class="sep"></div>
-  <div><b>Megye színezés</b></div>
+  <div><b>Megye színezés (0–100)</b></div>
   <div class="item"><span class="swatch" style="background:#f7fbff"></span>0–19</div>
   <div class="item"><span class="swatch" style="background:#deebf7"></span>20–39</div>
   <div class="item"><span class="swatch" style="background:#c6dbef"></span>40–59</div>
   <div class="item"><span class="swatch" style="background:#9ecae1"></span>60–79</div>
   <div class="item"><span class="swatch" style="background:#6baed6"></span>80–100</div>
+  <div class="item"><span class="swatch" style="background:#dddddd"></span>nincs adat</div>
 
   <div class="sep"></div>
   <div><b>Pontok</b></div>
@@ -166,14 +194,960 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const map = L.map('map').setView([47.16, 19.5], 7);
+(function(){
+  // ===== HUB súlyok (fix) =====
+  // Megjegyzés: takarmány kivéve, lisztmalmok hozzáadva
+  const HUB_WEIGHTS = {
+    processing: 1.00,
+    osm_processing: 0.80,
+    logistics_hub: 0.70,
+    distribution: 0.50,
+    flour_mill: 0.85
+  };
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution:'&copy; OpenStreetMap'
-}).addTo(map);
+  const statusEl = document.getElementById("status");
+  const sourcesEl = document.getElementById("sources");
+  const scenarioInfoEl = document.getElementById("scenarioInfo");
+  const metricSelect = document.getElementById("metric");
 
-// ide marad minden korábbi JS logika változatlanul
-// (pontok, vasút, index számítás stb.)
+  const wProdEl = document.getElementById("wProd");
+  const wAccessEl = document.getElementById("wAccess");
+  const wBufferEl = document.getElementById("wBuffer");
+
+  const wProdValEl = document.getElementById("wProdVal");
+  const wAccessValEl = document.getElementById("wAccessVal");
+  const wBufferValEl = document.getElementById("wBufferVal");
+  const sumInfoEl = document.getElementById("sumInfo");
+
+  const btnNormal = document.getElementById("btnNormal");
+  const btnDrought = document.getElementById("btnDrought");
+  const btnLogistics = document.getElementById("btnLogistics");
+
+  const chipProcessing = document.getElementById("chipProcessing");
+  const chipHub = document.getElementById("chipHub");
+  const chipDistribution = document.getElementById("chipDistribution");
+  const chipStations = document.getElementById("chipStations");
+  const chipRail = document.getElementById("chipRail");
+  const chipProcessingOSM = document.getElementById("chipProcessingOSM");
+  const chipFlour = document.getElementById("chipFlour");
+
+  const alphaEl = document.getElementById("alpha");
+  const gammaEl = document.getElementById("gamma");
+  const betaEl  = document.getElementById("beta");
+  const alphaValEl = document.getElementById("alphaVal");
+  const gammaValEl = document.getElementById("gammaVal");
+  const betaValEl  = document.getElementById("betaVal");
+  const alphaHintEl = document.getElementById("alphaHint");
+
+  function setStatus(html){ statusEl.innerHTML = "Státusz: " + html; }
+  function setSources(html){ sourcesEl.innerHTML = html || ""; }
+  function setScenarioLabel(text){ scenarioInfoEl.textContent = "Szcenárió: " + text; }
+
+  const map = L.map('map').setView([47.16, 19.5], 7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+  let nutsLayer = null;
+
+  let pointsLayer = null;      // logistics_food.geojson
+  let pointsFC = null;
+
+  let railLayer = null;        // rail_lines.geojson
+  let showRail = true;
+
+  let stationsLayer = null;    // rail_stations.geojson
+  let stationsFC = null;
+  let showStations = false;
+
+  let procOSMLayer = null;     // processing_candidates.geojson
+  let procOSMFC = null;
+  let showProcOSM = false;
+
+  // Lisztmalmok
+  let flourLayer = null;
+  let flourFC = null;
+  let showFlour = true;
+
+  let showProcessing = true;
+  let showHub = true;
+  let showDistribution = true;
+
+  let currentScenario = "normal"; // normal|drought|logistics|custom
+
+  let rawByNutsId = {};
+  let calcByNutsId = {};
+  let euroYear = "utolsó elérhető";
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+
+  function getColor(v){
+    if (v == null || Number.isNaN(v)) return "#dddddd";
+    if (v < 20) return "#f7fbff";
+    if (v < 40) return "#deebf7";
+    if (v < 60) return "#c6dbef";
+    if (v < 80) return "#9ecae1";
+    return "#6baed6";
+  }
+
+  function parseCSV(text){
+    const lines = text.trim().split(/\r?\n/);
+    const header = lines[0].split(",").map(x=>x.trim());
+    const rows = [];
+    for (let i=1;i<lines.length;i++){
+      const line = lines[i].trim();
+      if (!line) continue;
+      const cols = line.split(",").map(x=>x.trim());
+      const obj = {};
+      header.forEach((h,idx)=> obj[h] = cols[idx]);
+      rows.push(obj);
+    }
+    return rows;
+  }
+
+  function parseMappingCSV(text){
+    const lines = text.trim().split(/\r?\n/);
+    const out = {};
+    for (let i=1;i<lines.length;i++){
+      const parts = lines[i].split(",");
+      if (parts.length < 2) continue;
+      const nuts = (parts[0]||"").trim();
+      const ksh  = (parts.slice(1).join(",")||"").trim();
+      if (nuts && ksh) out[nuts] = ksh;
+    }
+    return out;
+  }
+
+  function normKey(s){
+    if (!s) return "";
+    return String(s)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g,"")
+      .replace(/[^a-z]/g,"");
+  }
+
+  function extractYield2024FromWorkbook(wb){
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const grid = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
+    if (!grid || !grid.length) return { valuesByName: {}, reason: "üres munkalap" };
+
+    let col2024 = -1, headerRowIdx = -1;
+    for (let i=0;i<Math.min(120,grid.length);i++){
+      const row = grid[i] || [];
+      let idx = row.findIndex(x => String(x).trim() === "2024");
+      if (idx === -1) idx = row.findIndex(x => Number(x) === 2024);
+      if (idx !== -1) { headerRowIdx = i; col2024 = idx; break; }
+    }
+    if (col2024 === -1) return { valuesByName: {}, reason: "nem találom a 2024 oszlopot" };
+
+    const valuesByName = {};
+    for (let i = headerRowIdx + 1; i < grid.length; i++){
+      const row = grid[i] || [];
+      const nameCell = row[0];
+      if (!nameCell) continue;
+      const name = String(nameCell).trim();
+      const num = Number(row[col2024]);
+      if (Number.isFinite(num)) valuesByName[normKey(name)] = num;
+    }
+    return { valuesByName, reason: "ok" };
+  }
+
+  function scaleTo0_100(valuesByName){
+    const nums = Object.values(valuesByName).filter(v => Number.isFinite(v));
+    const min = Math.min(...nums), max = Math.max(...nums);
+    const scaled = {};
+    Object.keys(valuesByName).forEach(k=>{
+      const v = valuesByName[k];
+      if (!Number.isFinite(v)) return;
+      const s = (max===min) ? 50 : ((v-min)/(max-min))*100;
+      scaled[k] = Math.round(s*10)/10;
+    });
+    return { scaled, min, max };
+  }
+
+  function parseJsonStatGeoValues(json){
+    const ids = json.id, sizes = json.size, dim = json.dimension, vals = json.value;
+    if (!ids || !sizes || !dim || !vals) throw new Error("Eurostat: hibás JSON-stat");
+    const geoPos = ids.indexOf("geo");
+    if (geoPos === -1) throw new Error("Eurostat: nincs geo dim");
+
+    const mult = [];
+    let prod = 1;
+    for (let i = sizes.length - 1; i >= 0; i--) { mult[i] = prod; prod *= sizes[i]; }
+
+    const geoIndexObj = dim.geo.category.index;
+    const geoCodes = Array.isArray(geoIndexObj)
+      ? geoIndexObj
+      : Object.keys(geoIndexObj).sort((a,b)=>geoIndexObj[a]-geoIndexObj[b]);
+
+    const out = {};
+    for (let g=0; g<geoCodes.length; g++){
+      const coords = new Array(sizes.length).fill(0);
+      coords[geoPos] = g;
+      let idx = 0;
+      for (let i=0;i<coords.length;i++) idx += coords[i]*mult[i];
+      const v = vals[idx];
+      if (v != null && Number.isFinite(Number(v))) out[geoCodes[g]] = Number(v);
+    }
+    return out;
+  }
+
+  function getLastTimeLabel(json){
+    try {
+      const timeCat = json.dimension.time.category;
+      if (timeCat && timeCat.label) {
+        const keys = Object.keys(timeCat.label);
+        if (keys.length) return keys[0];
+      }
+    } catch(_) {}
+    return "utolsó elérhető";
+  }
+
+  function readWeights(){ return { wp:Number(wProdEl.value)/100, wa:Number(wAccessEl.value)/100, wb:Number(wBufferEl.value)/100 }; }
+  function normalize(w){
+    const s = w.wp + w.wa + w.wb;
+    if (s <= 0) return {wp:0.45, wa:0.35, wb:0.20};
+    return {wp:w.wp/s, wa:w.wa/s, wb:w.wb/s};
+  }
+
+  function readAlpha(){ return Number(alphaEl.value) / 100; }
+  function readGamma(){ return Number(gammaEl.value) / 100; }
+  function readBeta(){ return Number(betaEl.value) / 100; }
+
+  function updateUI(){
+    const w = readWeights();
+    const s = w.wp + w.wa + w.wb;
+    wProdValEl.textContent = w.wp.toFixed(2);
+    wAccessValEl.textContent = w.wa.toFixed(2);
+    wBufferValEl.textContent = w.wb.toFixed(2);
+    sumInfoEl.textContent = (Math.abs(s-1) < 0.001) ? "Súlyösszeg = 1.00" : ("Súlyösszeg = " + s.toFixed(2) + " → normalizálva");
+
+    alphaValEl.textContent = readAlpha().toFixed(2);
+    gammaValEl.textContent = readGamma().toFixed(2);
+    betaValEl.textContent  = readBeta().toFixed(2);
+
+    alphaHintEl.textContent = (currentScenario === "logistics")
+      ? "Logisztika aktív: Access = α·LogiScore + (1–α)·PopScore; LogiScore = γ·Hub + (1–γ)·Transport; Transport = β·Station + (1–β)·Rail"
+      : "Normál/Aszály: Access = PopScore (α/β/γ nem számít)";
+  }
+
+  function computeTransport(stationScore, railScore){
+    if (stationScore == null && railScore == null) return null;
+    const b = readBeta();
+    const s = (stationScore == null || Number.isNaN(stationScore)) ? null : stationScore;
+    const r = (railScore == null || Number.isNaN(railScore)) ? null : railScore;
+    if (s == null && r == null) return null;
+    if (s == null) return r;
+    if (r == null) return s;
+    return Math.round((b*s + (1-b)*r)*10)/10;
+  }
+
+  function computeLogi(hubScore, transportScore){
+    if (hubScore == null && transportScore == null) return null;
+    const g = readGamma();
+    const h = (hubScore == null || Number.isNaN(hubScore)) ? null : hubScore;
+    const t = (transportScore == null || Number.isNaN(transportScore)) ? null : transportScore;
+    if (h == null && t == null) return null;
+    if (h == null) return t;
+    if (t == null) return h;
+    return Math.round((g*h + (1-g)*t)*10)/10;
+  }
+
+  function computeAccessEffective(popScore, logiScore){
+    if (popScore == null || Number.isNaN(popScore)) return null;
+    if (currentScenario !== "logistics") return popScore;
+    const a = readAlpha();
+    const p = popScore;
+    const l = (logiScore == null || Number.isNaN(logiScore)) ? null : logiScore;
+    if (l == null) return p;
+    return Math.round((a*l + (1-a)*p)*10)/10;
+  }
+
+  function computeAll(){
+    updateUI();
+    const w = normalize(readWeights());
+    calcByNutsId = {};
+    Object.keys(rawByNutsId).forEach(id=>{
+      const r = rawByNutsId[id];
+
+      const transport = computeTransport(r.station, r.rail);
+      const logi = computeLogi(r.hub, transport);
+      const accessEff = computeAccessEffective(r.access_pop, logi);
+
+      const base = { ...r, transport, logi, access: accessEff };
+
+      if (r.prod == null || accessEff == null || r.buffer == null || [r.prod, accessEff, r.buffer].some(x=>Number.isNaN(x))) {
+        calcByNutsId[id] = { ...base, index: null };
+        return;
+      }
+
+      const idx = w.wp*r.prod + w.wa*accessEff + w.wb*r.buffer;
+      calcByNutsId[id] = { ...base, index: Math.round(idx*10)/10 };
+    });
+  }
+
+  function baseStyle(feature){
+    const id = feature.properties.NUTS_ID;
+    const metric = metricSelect.value;
+    const d = calcByNutsId[id];
+    const v = d ? Number(d[metric]) : null;
+    return { color:"#333", weight:1, fillColor:getColor(v), fillOpacity:0.6 };
+  }
+
+  function refresh(){
+    computeAll();
+    if (nutsLayer) nutsLayer.setStyle(baseStyle);
+  }
+
+  function setActive(btn){
+    [btnNormal, btnDrought, btnLogistics].forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+  }
+
+  function applyScenario(which){
+    if (which==="normal"){
+      currentScenario = "normal";
+      wProdEl.value=45; wAccessEl.value=35; wBufferEl.value=20;
+      setActive(btnNormal);
+      setScenarioLabel("Normál (45/35/20)");
+    }
+    if (which==="drought"){
+      currentScenario = "drought";
+      wProdEl.value=60; wAccessEl.value=20; wBufferEl.value=20;
+      setActive(btnDrought);
+      setScenarioLabel("Aszály (60/20/20)");
+    }
+    if (which==="logistics"){
+      currentScenario = "logistics";
+      wProdEl.value=30; wAccessEl.value=55; wBufferEl.value=15;
+      setActive(btnLogistics);
+      setScenarioLabel("Logisztika (30/55/15) — LogiScore+Pop");
+      metricSelect.value = "access";
+    }
+    refresh();
+  }
+
+  btnNormal.onclick = ()=>applyScenario("normal");
+  btnDrought.onclick = ()=>applyScenario("drought");
+  btnLogistics.onclick = ()=>applyScenario("logistics");
+
+  [wProdEl,wAccessEl,wBufferEl].forEach(el => el.addEventListener("input", ()=>{
+    currentScenario = "custom";
+    [btnNormal, btnDrought, btnLogistics].forEach(b=>b.classList.remove("active"));
+    setScenarioLabel("Egyéni (kézi súlyok)");
+    refresh();
+  }));
+
+  metricSelect.addEventListener("change", ()=>{ if (nutsLayer) nutsLayer.setStyle(baseStyle); });
+
+  [alphaEl,gammaEl,betaEl].forEach(el => el.addEventListener("input", ()=>{
+    if (currentScenario === "logistics") metricSelect.value = "access";
+    refresh();
+  }));
+
+  function toggleChip(chipEl, current){
+    if (current) chipEl.classList.remove("on");
+    else chipEl.classList.add("on");
+    return !current;
+  }
+
+  function pointStyleByType(t){
+    const type = (t || "").toLowerCase();
+    if (type === "processing") return { color:"#000", weight:1, fillColor:"#e74c3c", fillOpacity:0.95, radius:7 };
+    if (type === "logistics_hub") return { color:"#000", weight:1, fillColor:"#3498db", fillOpacity:0.95, radius:7 };
+    if (type === "distribution") return { color:"#000", weight:1, fillColor:"#2ecc71", fillOpacity:0.95, radius:7 };
+    return { color:"#000", weight:1, fillColor:"#666", fillOpacity:0.95, radius:7 };
+  }
+  function typeVisible(t){
+    const type = (t || "").toLowerCase();
+    if (type === "processing") return showProcessing;
+    if (type === "logistics_hub") return showHub;
+    if (type === "distribution") return showDistribution;
+    return true;
+  }
+
+  function rebuildAfterToggles(){
+    if (railLayer && showRail) railLayer.bringToBack();
+    if (nutsLayer) nutsLayer.bringToFront();
+    if (pointsLayer) pointsLayer.bringToFront();
+    if (procOSMLayer && showProcOSM) procOSMLayer.bringToFront();
+    if (flourLayer && showFlour) flourLayer.bringToFront();
+    if (stationsLayer && showStations) stationsLayer.bringToFront();
+  }
+
+  function rebuildPointsLayer(){
+    if (!pointsFC) return;
+    if (pointsLayer) { map.removeLayer(pointsLayer); pointsLayer = null; }
+
+    pointsLayer = L.geoJSON(pointsFC, {
+      filter: f => typeVisible((f.properties||{}).type),
+      pointToLayer: (feature, latlng) => L.circleMarker(latlng, pointStyleByType((feature.properties||{}).type)),
+      onEachFeature: function(feature, layer){
+        const p = feature.properties || {};
+        const name = p.name || "Pont";
+        const type = p.type || "unknown";
+        layer.bindPopup("<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#555'>"+escapeHtml(type)+"</span>");
+      }
+    });
+
+    pointsLayer.addTo(map);
+    rebuildAfterToggles();
+  }
+
+  chipProcessing.onclick = () => { showProcessing = toggleChip(chipProcessing, showProcessing); rebuildPointsLayer(); };
+  chipHub.onclick = () => { showHub = toggleChip(chipHub, showHub); rebuildPointsLayer(); };
+  chipDistribution.onclick = () => { showDistribution = toggleChip(chipDistribution, showDistribution); rebuildPointsLayer(); };
+
+  function buildStationsLayer(){
+    if (!stationsFC) return;
+    if (stationsLayer) { map.removeLayer(stationsLayer); stationsLayer = null; }
+
+    stationsLayer = L.geoJSON(stationsFC, {
+      pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+        radius: 4, color: "#0033cc", weight: 1, fillColor: "#0066ff", fillOpacity: 0.90
+      }),
+      onEachFeature: function(feature, layer) {
+        const p = feature.properties || {};
+        const name = p.name || p["name:hu"] || (p.tags && p.tags.name) || "Vasútállomás";
+        layer.bindPopup("<b>"+escapeHtml(name)+"</b>");
+      }
+    });
+
+    if (showStations) stationsLayer.addTo(map);
+  }
+
+  chipStations.onclick = () => {
+    showStations = toggleChip(chipStations, showStations);
+    if (!stationsLayer) return;
+    if (showStations) stationsLayer.addTo(map); else map.removeLayer(stationsLayer);
+    rebuildAfterToggles();
+  };
+
+  function buildProcOSMLayer(){
+    if (!procOSMFC) return;
+    if (procOSMLayer) { map.removeLayer(procOSMLayer); procOSMLayer = null; }
+
+    procOSMLayer = L.geoJSON(procOSMFC, {
+      pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+        radius: 5, color: "#7a0b00", weight: 1, fillColor: "#e74c3c", fillOpacity: 0.90
+      }),
+      onEachFeature: function(feature, layer){
+        const p = feature.properties || {};
+        const tags = p.tags || {};
+        const name = p.name || tags.name || "Feldolgozó jelölt";
+        const note =
+          (tags.industrial ? ("industrial="+tags.industrial) : "") ||
+          (tags.man_made ? ("man_made="+tags.man_made) : "") ||
+          (tags.craft ? ("craft="+tags.craft) : "") ||
+          (tags.historic ? ("historic="+tags.historic) : "");
+        layer.bindPopup("<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#555'>"+escapeHtml(note)+"</span>");
+      }
+    });
+
+    if (showProcOSM) procOSMLayer.addTo(map);
+  }
+
+  chipProcessingOSM.onclick = () => {
+    showProcOSM = toggleChip(chipProcessingOSM, showProcOSM);
+    if (!procOSMLayer) return;
+    if (showProcOSM) procOSMLayer.addTo(map); else map.removeLayer(procOSMLayer);
+    rebuildAfterToggles();
+  };
+
+  // ===== Lisztmalmok layer =====
+  function buildFlourLayer(){
+    if (!flourFC) return;
+    if (flourLayer) { map.removeLayer(flourLayer); flourLayer = null; }
+
+    flourLayer = L.geoJSON(flourFC, {
+      pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+        radius: 6,
+        color: "#000", weight: 1,
+        fillColor: "#8e44ad", fillOpacity: 0.95
+      }),
+      onEachFeature: function(feature, layer){
+        const p = feature.properties || {};
+        const name = p.company || p.name || p.title || "Lisztmalom";
+        const addr = p.address || p.cím || p.cim || "";
+        const link = p.map_link || p.terkep_link || p.Terkep_link || p.link || "";
+        const linkHtml = link ? `<br><a href="${escapeHtml(link)}" target="_blank" rel="noopener">Térkép</a>` : "";
+        layer.bindPopup("<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#555'>"+escapeHtml(addr)+"</span>"+linkHtml);
+      }
+    });
+
+    if (showFlour) flourLayer.addTo(map);
+    rebuildAfterToggles();
+  }
+
+  chipFlour.onclick = () => {
+    showFlour = toggleChip(chipFlour, showFlour);
+    if (!flourLayer) return;
+    if (showFlour) flourLayer.addTo(map); else map.removeLayer(flourLayer);
+    rebuildAfterToggles();
+
+    // hub-score újraszámítás, mert a lisztmalom beleszámít
+    if (nutsLayer) {
+      const hb = computeHubScoreWeightedByCounty();
+      Object.keys(rawByNutsId).forEach(id=>{
+        rawByNutsId[id].hub = hb.hubById[id] ?? null;
+        rawByNutsId[id].hub_counts = hb.countsById[id] ?? null;
+        rawByNutsId[id].hub_wsum = (id in hb.wsumById) ? hb.wsumById[id] : null;
+      });
+      refresh();
+    }
+  };
+
+  chipRail.onclick = () => {
+    showRail = toggleChip(chipRail, showRail);
+    if (!railLayer) return;
+    if (showRail) railLayer.addTo(map); else map.removeLayer(railLayer);
+    rebuildAfterToggles();
+  };
+
+  // ===== pontszám: rail/station/hub =====
+  function computeRailScoreByCounty(railFC){
+    if (!nutsLayer) return { scaledById:{}, min:0, max:0 };
+
+    const countsById = {};
+    nutsLayer.eachLayer(l=>{
+      const id = l.feature && l.feature.properties ? l.feature.properties.NUTS_ID : null;
+      if (id) countsById[id] = 0;
+    });
+
+    function bump(lat, lng){
+      const ll = L.latLng(lat, lng);
+      let hitId = null;
+      nutsLayer.eachLayer(l=>{
+        if (hitId) return;
+        if (l.getBounds && l.getBounds().contains(ll)){
+          hitId = l.feature.properties.NUTS_ID;
+        }
+      });
+      if (hitId) countsById[hitId] = (countsById[hitId]||0) + 1;
+    }
+
+    const feats = (railFC && railFC.features) ? railFC.features : [];
+    for (const f of feats){
+      const g = f.geometry;
+      if (!g) continue;
+      if (g.type === "LineString"){
+        const coords = g.coordinates || [];
+        for (let i=0;i<coords.length;i+=5){
+          const c = coords[i];
+          if (c && c.length>=2) bump(c[1], c[0]);
+        }
+      } else if (g.type === "MultiLineString"){
+        const lines = g.coordinates || [];
+        for (const line of lines){
+          for (let i=0;i<line.length;i+=5){
+            const c = line[i];
+            if (c && c.length>=2) bump(c[1], c[0]);
+          }
+        }
+      }
+    }
+
+    const values = Object.values(countsById);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+
+    const scaledById = {};
+    Object.keys(countsById).forEach(id=>{
+      const v = countsById[id];
+      let s = 0;
+      if (max === min) s = 50;
+      else s = ((v - min) / (max - min)) * 100;
+      scaledById[id] = Math.round(s*10)/10;
+    });
+
+    return { scaledById, min, max };
+  }
+
+  function computeStationScoreByCounty(){
+    if (!nutsLayer || !stationsFC) return { scoreById:{}, countById:{}, min:0, max:0 };
+
+    const countById = {};
+    nutsLayer.eachLayer(l=>{
+      const id = l.feature && l.feature.properties ? l.feature.properties.NUTS_ID : null;
+      if (id) countById[id] = 0;
+    });
+
+    const feats = stationsFC.features || [];
+    for (const f of feats){
+      const g = f.geometry;
+      if (!g || g.type !== "Point") continue;
+      const lng = g.coordinates[0], lat = g.coordinates[1];
+      const ll = L.latLng(lat, lng);
+
+      let hit = null;
+      nutsLayer.eachLayer(l=>{
+        if (hit) return;
+        if (l.getBounds && l.getBounds().contains(ll)){
+          hit = l.feature.properties.NUTS_ID;
+        }
+      });
+      if (hit) countById[hit] = (countById[hit]||0) + 1;
+    }
+
+    const values = Object.values(countById);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+
+    const scoreById = {};
+    Object.keys(countById).forEach(id=>{
+      const v = countById[id];
+      let s = 0;
+      if (max === min) s = 50;
+      else s = ((v - min) / (max - min)) * 100;
+      scoreById[id] = Math.round(s*10)/10;
+    });
+
+    return { scoreById, countById, min, max };
+  }
+
+  function computeHubScoreWeightedByCounty(){
+    if (!nutsLayer) return { hubById:{}, countsById:{}, wsumById:{}, min:0, max:0 };
+
+    const countsById = {};
+    const wsumById = {};
+    nutsLayer.eachLayer(l=>{
+      const id = l.feature && l.feature.properties ? l.feature.properties.NUTS_ID : null;
+      if (id) {
+        countsById[id] = { processing:0, hub:0, distribution:0, osm_processing:0, flour_mill:0, total:0 };
+        wsumById[id] = 0;
+      }
+    });
+
+    function hitCounty(lat, lng){
+      const ll = L.latLng(lat, lng);
+      let hit = null;
+      nutsLayer.eachLayer(l=>{
+        if (hit) return;
+        if (l.getBounds && l.getBounds().contains(ll)){
+          hit = l.feature.properties.NUTS_ID;
+        }
+      });
+      return hit;
+    }
+
+    // logistics_food pontok
+    if (pointsFC && pointsFC.features){
+      for (const f of pointsFC.features){
+        const g = f.geometry;
+        if (!g || g.type !== "Point") continue;
+        const lng = g.coordinates[0], lat = g.coordinates[1];
+        const id = hitCounty(lat, lng);
+        if (!id || !countsById[id]) continue;
+
+        const t = ((f.properties||{}).type || "").toLowerCase();
+        if (t === "processing") { countsById[id].processing++; wsumById[id] += HUB_WEIGHTS.processing; }
+        else if (t === "logistics_hub") { countsById[id].hub++; wsumById[id] += HUB_WEIGHTS.logistics_hub; }
+        else if (t === "distribution") { countsById[id].distribution++; wsumById[id] += HUB_WEIGHTS.distribution; }
+        countsById[id].total++;
+      }
+    }
+
+    // OSM processing
+    if (procOSMFC && procOSMFC.features){
+      for (const f of procOSMFC.features){
+        const g = f.geometry;
+        if (!g || g.type !== "Point") continue;
+        const lng = g.coordinates[0], lat = g.coordinates[1];
+        const id = hitCounty(lat, lng);
+        if (!id || !countsById[id]) continue;
+
+        countsById[id].osm_processing++;
+        countsById[id].total++;
+        wsumById[id] += HUB_WEIGHTS.osm_processing;
+      }
+    }
+
+    // Lisztmalmok (csak ha látható a layer)
+    if (showFlour && flourFC && flourFC.features){
+      for (const f of flourFC.features){
+        const g = f.geometry;
+        if (!g || g.type !== "Point") continue;
+        const lng = g.coordinates[0], lat = g.coordinates[1];
+        const id = hitCounty(lat, lng);
+        if (!id || !countsById[id]) continue;
+
+        countsById[id].flour_mill++;
+        countsById[id].total++;
+        wsumById[id] += HUB_WEIGHTS.flour_mill;
+      }
+    }
+
+    const wvals = Object.keys(wsumById).map(id => wsumById[id]);
+    const min = Math.min(...wvals);
+    const max = Math.max(...wvals);
+
+    const hubById = {};
+    Object.keys(wsumById).forEach(id=>{
+      const v = wsumById[id];
+      let s = 0;
+      if (max === min) s = 50;
+      else s = ((v - min) / (max - min)) * 100;
+      hubById[id] = Math.round(s*10)/10;
+    });
+
+    return { hubById, countsById, wsumById, min, max };
+  }
+
+  function countyPopupHtml(feature){
+    const id = feature.properties.NUTS_ID;
+    const name = feature.properties.NAME_LATN || feature.properties.NUTS_NAME || "Terület";
+    const d = calcByNutsId[id] || null;
+
+    const a = readAlpha(), g = readGamma(), b = readBeta();
+    const hc = d && d.hub_counts ? d.hub_counts : null;
+    const hw = d && Number.isFinite(d.hub_wsum) ? d.hub_wsum : null;
+
+    const modeLine = (currentScenario==="logistics")
+      ? "<div style='font-size:11px;color:#555;margin-top:6px;'><b>Logisztika aktív</b><br>" +
+        "α="+a.toFixed(2)+", γ="+g.toFixed(2)+", β="+b.toFixed(2)+"</div>"
+      : "<div style='font-size:11px;color:#555;margin-top:6px;'><b>Normál/Aszály:</b> Access = Pop</div>";
+
+    const hubLine = (d && d.hub!=null)
+      ? ("<b>HubScore:</b> "+d.hub +
+         (hc ? (" (össz: "+hc.total+
+                ", feld: "+hc.processing+
+                " + OSM:"+hc.osm_processing+
+                ", hub: "+hc.hub+
+                ", elosztás: "+hc.distribution+
+                ", lisztmalom: "+hc.flour_mill+
+                (hw!=null ? (", wsum: "+hw.toFixed(2)) : "") +
+                ")") : "") +
+         "<br>")
+      : "<b>HubScore:</b> n/a<br>";
+
+    const vals = d ? (
+      "<b>Index:</b> " + (d.index==null?"n/a":d.index) + "<br>" +
+      "<b>Prod:</b> " + (d.prod==null?"n/a":d.prod) + "<br>" +
+      "<b>Buffer:</b> " + (d.buffer==null?"n/a":d.buffer) + "<br>" +
+      "<b>Access (eff):</b> " + (d.access==null?"n/a":d.access) + "<br>" +
+      "<b>PopScore:</b> " + (d.access_pop==null?"n/a":d.access_pop) + "<br>" +
+      hubLine +
+      "<b>TransportScore:</b> " + (d.transport==null?"n/a":d.transport) + "<br>" +
+      "<b>LogiScore:</b> " + (d.logi==null?"n/a":d.logi) + "<br>" +
+      "<b>StationScore:</b> " + (d.station==null?"n/a":d.station) + " (db: " + (d.station_count||0) + ")<br>" +
+      "<b>RailScore:</b> " + (d.rail==null?"n/a":d.rail)
+    ) : "<i>Nincs adat</i>";
+
+    return (
+      "<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#555'>"+escapeHtml(id)+"</span>" +
+      "<hr style='border:none;border-top:1px solid #eee;margin:8px 0'/>" +
+      vals + modeLine
+    );
+  }
+
+  // ===== betöltések =====
+  async function loadAllData(){
+    const foodText = await fetch("data/food_index.csv", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("food_index.csv HTTP " + r.status);
+      return r.text();
+    });
+    const foodRows = parseCSV(foodText);
+    const baselineByNuts = {};
+    foodRows.forEach(r=>{
+      const id = r["NUTS_ID"];
+      const b = Number(r["buffer"]);
+      if (id) baselineByNuts[id] = Number.isFinite(b) ? b : null;
+    });
+
+    const mapText = await fetch("data/nuts3_to_ksh_county.csv", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("nuts3_to_ksh_county.csv HTTP " + r.status);
+      return r.text();
+    });
+    const nutsToKsh = parseMappingCSV(mapText);
+
+    const cornAB = await fetch("data/kukoricatermesatlag.xlsx", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("kukoricatermesatlag.xlsx HTTP " + r.status);
+      return r.arrayBuffer();
+    });
+    const cornWB = XLSX.read(cornAB, { type:"array" });
+    const cornEx = extractYield2024FromWorkbook(cornWB);
+    const cornScaled = scaleTo0_100(cornEx.valuesByName);
+
+    const wheatAB = await fetch("data/buzatermesatlag.xlsx", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("buzatermesatlag.xlsx HTTP " + r.status);
+      return r.arrayBuffer();
+    });
+    const wheatWB = XLSX.read(wheatAB, { type:"array" });
+    const wheatEx = extractYield2024FromWorkbook(wheatWB);
+    const wheatScaled = scaleTo0_100(wheatEx.valuesByName);
+
+    const base = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/DEMO_R_D3DENS";
+    const euroUrl = base + "?lang=EN&format=JSON&freq=A&unit=PER_KM2&lastTimePeriod=1&geo=HU110&geo=HU120&geo=HU211&geo=HU212&geo=HU213&geo=HU221&geo=HU222&geo=HU223&geo=HU231&geo=HU232&geo=HU233&geo=HU311&geo=HU312&geo=HU313&geo=HU321&geo=HU322&geo=HU323&geo=HU331&geo=HU332&geo=HU333";
+    const euroJson = await fetch(euroUrl, { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("Eurostat HTTP " + r.status);
+      return r.json();
+    });
+    euroYear = getLastTimeLabel(euroJson);
+
+    const densRaw = parseJsonStatGeoValues(euroJson);
+    const densScaled = scaleTo0_100(densRaw);
+
+    rawByNutsId = {};
+    Object.keys(nutsToKsh).forEach(nutsId=>{
+      const kshName = nutsToKsh[nutsId];
+      const corn = cornScaled.scaled[normKey(kshName)];
+      const wheat = wheatScaled.scaled[normKey(kshName)];
+      const pop = densScaled.scaled[nutsId];
+      const buffer = (nutsId in baselineByNuts) ? baselineByNuts[nutsId] : null;
+
+      const prod =
+        (corn != null && wheat != null)
+          ? Math.round(((Number(corn)+Number(wheat))/2)*10)/10
+          : null;
+
+      const finalProd = (nutsId === "HU110") ? null : prod;
+
+      rawByNutsId[nutsId] = {
+        prod: finalProd,
+        buffer: (buffer != null ? Number(buffer) : null),
+        access_pop: (pop != null ? Number(pop) : null),
+        rail: null,
+        station: null,
+        station_count: 0,
+        hub: null,
+        hub_counts: null,
+        hub_wsum: null
+      };
+    });
+  }
+
+  async function loadPoints(){
+    pointsFC = await fetch("data/logistics_food.geojson", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("logistics_food.geojson HTTP " + r.status);
+      return r.json();
+    });
+    rebuildPointsLayer();
+  }
+
+  async function loadStations(){
+    stationsFC = await fetch("data/rail_stations.geojson", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("rail_stations.geojson HTTP " + r.status);
+      return r.json();
+    });
+    buildStationsLayer();
+  }
+
+  async function loadProcOSM(){
+    procOSMFC = await fetch("data/processing_candidates.geojson", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("processing_candidates.geojson HTTP " + r.status);
+      return r.json();
+    });
+    buildProcOSMLayer();
+  }
+
+  async function loadFlourMills(){
+    flourFC = await fetch("data/industrial_flour_mills.geojson", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("industrial_flour_mills.geojson HTTP " + r.status);
+      return r.json();
+    });
+    buildFlourLayer();
+    return { count:(flourFC.features||[]).length };
+  }
+
+  async function loadRailLines(){
+    const railFC = await fetch("data/rail_lines.geojson", { cache:"no-store" }).then(r=>{
+      if(!r.ok) throw new Error("rail_lines.geojson HTTP " + r.status);
+      return r.json();
+    });
+
+    if (railLayer) { map.removeLayer(railLayer); railLayer = null; }
+    railLayer = L.geoJSON(railFC, { style: () => ({ color:"#222", weight:3, opacity:0.95 }) });
+    if (showRail) railLayer.addTo(map);
+    railLayer.bringToBack();
+
+    const rs = computeRailScoreByCounty(railFC);
+    Object.keys(rawByNutsId).forEach(id=>{
+      rawByNutsId[id].rail = (id in rs.scaledById) ? rs.scaledById[id] : null;
+    });
+
+    return rs;
+  }
+
+  // ===== init =====
+  (async function init(){
+    try {
+      setStatus("betöltés…");
+      setSources("");
+      updateUI();
+
+      const nutsUrl = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2024_4326_LEVL_3.geojson";
+      const fc = await fetch(nutsUrl, { cache:"no-store" }).then(r=>{
+        if(!r.ok) throw new Error("GISCO HTTP " + r.status);
+        return r.json();
+      });
+      const hu = { type:"FeatureCollection", features:(fc.features||[]).filter(f => f.properties && f.properties.CNTR_CODE==="HU") };
+
+      await loadAllData();
+
+      nutsLayer = L.geoJSON(hu, {
+        style: baseStyle,
+        onEachFeature: function(feature, layer){
+          layer.on("click", function(){
+            layer.bindPopup(countyPopupHtml(feature)).openPopup();
+          });
+        }
+      }).addTo(map);
+
+      const railStat = await loadRailLines();
+      await loadPoints();
+      await loadStations();
+      await loadProcOSM();
+      const flourRes = await loadFlourMills();
+
+      const st = computeStationScoreByCounty();
+      Object.keys(rawByNutsId).forEach(id=>{
+        rawByNutsId[id].station = st.scoreById[id] ?? null;
+        rawByNutsId[id].station_count = st.countById[id] ?? 0;
+      });
+
+      // hub-score (beleveszi a lisztmalmokat is)
+      const hb = computeHubScoreWeightedByCounty();
+      Object.keys(rawByNutsId).forEach(id=>{
+        rawByNutsId[id].hub = hb.hubById[id] ?? null;
+        rawByNutsId[id].hub_counts = hb.countsById[id] ?? null;
+        rawByNutsId[id].hub_wsum = (id in hb.wsumById) ? hb.wsumById[id] : null;
+      });
+
+      refresh();
+
+      map.fitBounds(nutsLayer.getBounds(), { padding:[20,20] });
+      rebuildAfterToggles();
+
+      setStatus(
+        `<span class='ok'>OK</span>` +
+        ` · Station min/max: ${st.min}/${st.max}` +
+        ` · HubW min/max: ${hb.min.toFixed(2)}/${hb.max.toFixed(2)}` +
+        ` · Rail min/max: ${railStat.min}/${railStat.max}` +
+        ` · lisztmalmok: ${flourRes.count}`
+      );
+
+      setSources(
+        "Hub súlyok: feld "+HUB_WEIGHTS.processing.toFixed(2)+
+        ", OSM "+HUB_WEIGHTS.osm_processing.toFixed(2)+
+        ", hub "+HUB_WEIGHTS.logistics_hub.toFixed(2)+
+        ", elosztás "+HUB_WEIGHTS.distribution.toFixed(2)+
+        ", lisztmalom "+HUB_WEIGHTS.flour_mill.toFixed(2)+
+        " · Eurostat DEMO_R_D3DENS ("+euroYear+") · KSH (2024 kuk+búza) · baseline: food_index.csv"
+      );
+
+      applyScenario("normal");
+
+    } catch (e) {
+      console.error(e);
+      setStatus("<span class='err'>HIBA:</span> " + e.message);
+      alert("HIBA: " + e.message);
+    }
+  })();
+
+})();
 </script>
 
 </body>
