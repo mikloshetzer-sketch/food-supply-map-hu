@@ -9,193 +9,590 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; }
-    #map { height: 100vh; }
+    :root{
+      --bg:#07111f;
+      --panel:#0d1b2aee;
+      --panel-2:#102338f0;
+      --border:rgba(148, 163, 184, .18);
+      --text:#e6eef8;
+      --muted:#9db0c7;
+      --accent:#2d8cff;
+      --accent-2:#19c37d;
+      --danger:#ef4444;
+      --warning:#f59e0b;
+      --shadow:0 16px 48px rgba(0,0,0,.34);
+      --radius:18px;
+      --topbar-h:74px;
+      --left-w:400px;
+      --right-w:330px;
+    }
 
-    /* Keskenyebb, hosszúkásabb panel */
-    .panel{
-      position:absolute; top:10px; left:10px; z-index:9999;
-      background: rgba(255,255,255,0.94);
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      overflow:hidden;
+    }
+
+    #map{
+      position:fixed;
+      inset:0;
+      height:100vh;
+      width:100vw;
+      z-index:1;
+      filter:saturate(1.03) contrast(1.01);
+    }
+
+    .app-shell{
+      position:fixed;
+      inset:0;
+      z-index:1000;
+      pointer-events:none;
+    }
+
+    .topbar,
+    .panel,
+    .legend,
+    .map-caption,
+    .mobile-toggle{
+      pointer-events:auto;
+    }
+
+    .topbar{
+      position:absolute;
+      top:12px;
+      left:12px;
+      right:12px;
+      min-height:var(--topbar-h);
+      display:flex;
+      align-items:stretch;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 18px;
+      border:1px solid var(--border);
+      border-radius:22px;
+      background:linear-gradient(180deg, rgba(7,17,31,.92), rgba(13,27,42,.92));
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .topbar-title{
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      min-width:0;
+    }
+    .eyebrow{
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.14em;
+      color:#7dd3fc;
+      text-transform:uppercase;
+      margin-bottom:4px;
+    }
+    .topbar h1{
+      margin:0;
+      font-size:22px;
+      line-height:1.15;
+      font-weight:800;
+    }
+    .subtitle{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.3;
+    }
+
+    .metrics{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(110px,1fr));
+      gap:10px;
+      min-width:min(50vw,520px);
+      align-self:stretch;
+    }
+    .metric-card{
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--border);
+      border-radius:16px;
       padding:10px 12px;
-      border:1px solid #ddd;
-      border-radius:12px;
-      width: 360px;              /* keskeny */
-      max-height: calc(100vh - 20px);
-      overflow: auto;            /* hosszúkás -> görgethető */
-      font-size:13px; line-height:1.25;
-      box-shadow:0 3px 10px rgba(0,0,0,0.12);
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      min-width:0;
+    }
+    .metric-label{
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:4px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .metric-value{
+      font-size:14px;
+      font-weight:700;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .panel,
+    .legend{
+      position:absolute;
+      top:98px;
+      bottom:12px;
+      border:1px solid var(--border);
+      border-radius:22px;
+      background:linear-gradient(180deg, rgba(10,19,34,.92), rgba(13,27,42,.92));
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(12px);
+      overflow:auto;
+      scrollbar-width:thin;
+    }
+    .panel{
+      left:12px;
+      width:var(--left-w);
+      padding:18px;
+    }
+    .legend{
+      right:12px;
+      width:var(--right-w);
+      padding:18px;
+    }
+
+    .section{
+      background:rgba(255,255,255,.025);
+      border:1px solid rgba(255,255,255,.05);
+      border-radius:18px;
+      padding:14px;
+      margin-bottom:14px;
+    }
+    .section:last-child{ margin-bottom:0; }
+    .section-title{
+      margin:0 0 10px 0;
+      font-size:13px;
+      font-weight:800;
+      color:#dbeafe;
+      letter-spacing:.04em;
+      text-transform:uppercase;
     }
 
     .badge{
-      display:inline-block; padding:2px 8px; border:1px solid #333;
-      border-radius:999px; font-size:11px; margin-left:6px; background:#fff;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 10px;
+      border:1px solid rgba(125,211,252,.32);
+      border-radius:999px;
+      font-size:11px;
+      margin-left:8px;
+      background:rgba(125,211,252,.09);
+      color:#d9f3ff;
+      font-weight:700;
     }
+    .badge::before{
+      content:"";
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:#22c55e;
+      box-shadow:0 0 10px rgba(34,197,94,.7);
+    }
+
     .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:6px; }
-    select{ padding:3px 5px; font-size:13px; width: 100%; }
+    .row:first-child{ margin-top:0; }
 
-    .btn{
-      padding:4px 8px; border:1px solid #333; background:#fff;
-      border-radius:8px; cursor:pointer; font-weight:700; font-size:12px;
+    label.block-label{
+      display:block;
+      width:100%;
+      font-size:12px;
+      font-weight:700;
+      color:#dbeafe;
+      margin-bottom:6px;
+      text-transform:uppercase;
+      letter-spacing:.04em;
     }
-    .btn.active{ background:#333; color:#fff; }
 
+    select{
+      width:100%;
+      padding:10px 12px;
+      font-size:13px;
+      color:var(--text);
+      background:rgba(3,10,20,.75);
+      border:1px solid rgba(148,163,184,.25);
+      border-radius:12px;
+      outline:none;
+    }
+
+    .btn,
     .chip{
-      padding:4px 8px; border:1px solid #333; background:#fff;
-      border-radius:999px; cursor:pointer; font-weight:700; font-size:12px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:36px;
+      padding:7px 12px;
+      border:1px solid rgba(148,163,184,.24);
+      background:rgba(255,255,255,.02);
+      color:var(--text);
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:700;
+      font-size:12px;
+      transition:.18s ease;
       user-select:none;
     }
-    .chip.on{ background:#333; color:#fff; }
-
-    .sliders{ margin-top:8px; border-top:1px solid #eee; padding-top:8px; }
-    .srow{ display:flex; align-items:center; gap:6px; margin-top:6px; }
-    .srow label{ width:150px; font-weight:700; font-size:12px; }
-    .srow input[type="range"]{ flex:1; }
-    .val{ width:56px; text-align:right; font-size:12px; font-variant-numeric: tabular-nums; }
-    .small{ font-size:11px; color:#444; margin-top:6px; }
-
-    .legend{
-      position:absolute; right:10px; bottom:10px; z-index:9999;
-      background: rgba(255,255,255,0.96);
-      padding:10px 12px; border:1px solid #ddd; border-radius:10px;
-      font-size:12px; line-height:1.2; min-width:280px;
-      box-shadow:0 3px 10px rgba(0,0,0,0.10);
-      max-height: calc(100vh - 20px);
-      overflow: auto;
+    .btn:hover,
+    .chip:hover{
+      transform:translateY(-1px);
+      border-color:rgba(96,165,250,.4);
+      background:rgba(45,140,255,.08);
     }
-    .legend .item{ display:flex; align-items:center; gap:6px; margin-top:4px; }
-    .swatch{ width:12px; height:12px; border-radius:2px; border:1px solid rgba(0,0,0,.2); }
+    .btn.active,
+    .chip.on{
+      background:linear-gradient(180deg, rgba(45,140,255,.24), rgba(45,140,255,.15));
+      color:#fff;
+      border-color:rgba(96,165,250,.58);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
+    }
 
-    .ok{ color:#0a7; font-weight:700; }
-    .warn{ color:#b57b00; font-weight:700; }
-    .err{ color:#b00; font-weight:700; }
+    .button-grid,
+    .chip-grid{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .sliders{ margin-top:0; }
+    .srow{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-top:9px;
+    }
+    .srow:first-child{ margin-top:0; }
+    .srow label{
+      width:138px;
+      flex:0 0 138px;
+      font-weight:700;
+      font-size:12px;
+      color:#d7e5f7;
+    }
+    .srow input[type="range"]{
+      flex:1;
+      accent-color:var(--accent);
+    }
+    .val{
+      width:58px;
+      text-align:right;
+      font-size:12px;
+      font-variant-numeric: tabular-nums;
+      color:#c7d8ea;
+    }
+    .small{
+      font-size:11px;
+      color:var(--muted);
+      margin-top:8px;
+      line-height:1.35;
+    }
+
+    .status-box{
+      padding:10px 12px;
+      background:rgba(0,0,0,.16);
+      border:1px solid rgba(148,163,184,.14);
+      border-radius:12px;
+      margin-top:10px;
+    }
+
+    .legend .item{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-top:7px;
+      color:#dbe7f3;
+    }
+    .legend .item span:last-child{ flex:1; }
+    .swatch{
+      width:13px;
+      height:13px;
+      border-radius:4px;
+      border:1px solid rgba(255,255,255,.16);
+      flex:0 0 13px;
+    }
+
+    .ok{ color:#34d399; font-weight:700; }
+    .warn{ color:#fbbf24; font-weight:700; }
+    .err{ color:#f87171; font-weight:700; }
+
+    .map-caption{
+      position:absolute;
+      left:calc(12px + var(--left-w) + 16px);
+      right:calc(12px + var(--right-w) + 16px);
+      bottom:12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      padding:10px 14px;
+      border:1px solid var(--border);
+      border-radius:18px;
+      background:rgba(7,17,31,.8);
+      color:var(--muted);
+      font-size:12px;
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .mobile-toggle{
+      display:none;
+      position:absolute;
+      left:12px;
+      top:98px;
+      z-index:1100;
+      padding:10px 14px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:rgba(7,17,31,.92);
+      color:#fff;
+      font-weight:700;
+      box-shadow:var(--shadow);
+    }
+
+    .leaflet-control-zoom a{
+      background:#0d1b2a !important;
+      color:#fff !important;
+      border-bottom-color:rgba(255,255,255,.08) !important;
+    }
+    .leaflet-popup-content-wrapper,
+    .leaflet-popup-tip{
+      background:#0d1b2a;
+      color:#eef4fb;
+    }
+    .leaflet-container a{ color:#8ec5ff; }
+    .leaflet-control-attribution{
+      background:rgba(7,17,31,.74) !important;
+      color:#d7e5f7 !important;
+    }
+    .leaflet-control-attribution a{ color:#9ed0ff !important; }
+
+    @media (max-width: 1320px){
+      :root{ --left-w:360px; --right-w:300px; }
+      .metrics{ grid-template-columns:repeat(2,minmax(120px,1fr)); min-width:320px; }
+    }
+
+    @media (max-width: 1080px){
+      body{ overflow:auto; }
+      .topbar{
+        flex-direction:column;
+        min-height:auto;
+      }
+      .metrics{ min-width:0; width:100%; }
+      .panel{
+        width:min(420px, calc(100vw - 24px));
+        transform:translateX(-110%);
+        transition:transform .22s ease;
+      }
+      .panel.open{ transform:translateX(0); }
+      .legend{
+        top:auto;
+        left:12px;
+        right:12px;
+        width:auto;
+        bottom:12px;
+        max-height:34vh;
+      }
+      .map-caption{
+        left:12px;
+        right:12px;
+        bottom:calc(34vh + 24px);
+        flex-direction:column;
+        align-items:flex-start;
+      }
+      .mobile-toggle{ display:inline-flex; align-items:center; }
+    }
+
+    @media (max-width: 720px){
+      .topbar{ top:8px; left:8px; right:8px; padding:12px; }
+      .panel{ left:8px; top:124px; bottom:8px; width:calc(100vw - 16px); }
+      .legend{ left:8px; right:8px; bottom:8px; padding:14px; }
+      .mobile-toggle{ left:8px; top:124px; }
+      .metrics{ grid-template-columns:1fr 1fr; }
+      .topbar h1{ font-size:18px; }
+      .srow{ flex-wrap:wrap; }
+      .srow label{ width:100%; flex:1 0 100%; }
+      .val{ width:auto; min-width:52px; }
+    }
   </style>
 </head>
 <body>
 
-<div class="panel">
-  <b>Ellátásbiztonsági index</b>
-  <span class="badge">VERZIÓ: MAP-V24</span>
-
-  <div class="row">
-    <label style="width:100%"><b>Mutató:</b></label>
-    <select id="metric">
-      <option value="index">Index</option>
-      <option value="prod">Termelés (kuk+búza)</option>
-      <option value="buffer">Tartalék (baseline)</option>
-      <option value="access">Hozzáférés (eff)</option>
-      <option value="access_pop">PopScore</option>
-      <option value="hub">HubScore (súlyozott)</option>
-      <option value="transport">TransportScore (vasút)</option>
-      <option value="logi">LogiScore (hub+vasút)</option>
-      <option value="station">StationScore</option>
-      <option value="rail">RailScore</option>
-    </select>
-  </div>
-
-  <div class="row">
-    <button class="btn active" id="btnNormal">Normál</button>
-    <button class="btn" id="btnDrought">Aszály</button>
-    <button class="btn" id="btnLogistics">Logisztika</button>
-  </div>
-
-  <div class="row" style="margin-top:10px;">
-    <b>Pontok:</b>
-    <span class="chip on" id="chipProcessing">Feldolgozó</span>
-    <span class="chip on" id="chipHub">Csomópont</span>
-    <span class="chip on" id="chipDistribution">Elosztás</span>
-    <span class="chip" id="chipStations">Vasútállomások</span>
-    <span class="chip" id="chipProcessingOSM">Feldolgozó (OSM)</span>
-    <span class="chip on" id="chipMills">Lisztmalmok</span>
-  </div>
-
-  <div class="row" style="margin-top:6px;">
-    <b>Vonalak:</b>
-    <span class="chip on" id="chipRail">Vasútvonal</span>
-  </div>
-
-  <div class="sliders">
-    <div class="small"><b>Súlyok</b> (összeg 1-re normalizálva)</div>
-
-    <div class="srow">
-      <label>Prod</label>
-      <input id="wProd" type="range" min="0" max="100" value="45" />
-      <div class="val" id="wProdVal">0.45</div>
-    </div>
-
-    <div class="srow">
-      <label>Access</label>
-      <input id="wAccess" type="range" min="0" max="100" value="35" />
-      <div class="val" id="wAccessVal">0.35</div>
-    </div>
-
-    <div class="srow">
-      <label>Buffer</label>
-      <input id="wBuffer" type="range" min="0" max="100" value="20" />
-      <div class="val" id="wBufferVal">0.20</div>
-    </div>
-
-    <div class="small" style="margin-top:10px;"><b>Logisztika – összetétel</b></div>
-
-    <div class="srow">
-      <label>Logi vs Pop (α)</label>
-      <input id="alpha" type="range" min="0" max="100" value="55" />
-      <div class="val" id="alphaVal">0.55</div>
-    </div>
-
-    <div class="srow">
-      <label>Hub vs Transport (γ)</label>
-      <input id="gamma" type="range" min="0" max="100" value="60" />
-      <div class="val" id="gammaVal">0.60</div>
-    </div>
-
-    <div class="srow">
-      <label>Station vs Rail (β)</label>
-      <input id="beta" type="range" min="0" max="100" value="60" />
-      <div class="val" id="betaVal">0.60</div>
-    </div>
-
-    <div class="small" id="alphaHint">Aktív mód: Normál/Aszály → Access = PopScore</div>
-
-    <div class="small" id="sumInfo">Súlyösszeg = 1.00</div>
-    <div class="small" id="scenarioInfo">Szcenárió: Normál (45/35/20)</div>
-    <div class="small" id="status">Státusz: betöltés…</div>
-    <div class="small" id="sources"></div>
-  </div>
-</div>
-
-<div class="legend">
-  <b>Jelmagyarázat</b>
-
-  <div style="margin-top:8px;"><b>Megye színezés</b></div>
-  <div class="item"><span class="swatch" style="background:#f7fbff"></span>0–19</div>
-  <div class="item"><span class="swatch" style="background:#deebf7"></span>20–39</div>
-  <div class="item"><span class="swatch" style="background:#c6dbef"></span>40–59</div>
-  <div class="item"><span class="swatch" style="background:#9ecae1"></span>60–79</div>
-  <div class="item"><span class="swatch" style="background:#6baed6"></span>80–100</div>
-  <div class="item"><span class="swatch" style="background:#dddddd"></span>nincs adat</div>
-
-  <hr style="border:none;border-top:1px solid #eee;margin:10px 0;">
-
-  <b>Pontok</b>
-  <div class="item"><span class="swatch" style="background:#e74c3c"></span>Feldolgozó</div>
-  <div class="item"><span class="swatch" style="background:#3498db"></span>Csomópont</div>
-  <div class="item"><span class="swatch" style="background:#2ecc71"></span>Elosztás</div>
-  <div class="item"><span class="swatch" style="background:#8e44ad"></span>Lisztmalom</div>
-  <div class="item"><span class="swatch" style="background:#e74c3c;border:1px dashed rgba(0,0,0,.35)"></span>Feldolgozó (OSM)</div>
-  <div class="item"><span class="swatch" style="background:#0066ff"></span>Vasútállomás</div>
-
-  <hr style="border:none;border-top:1px solid #eee;margin:10px 0;">
-
-  <b>Vasút</b>
-  <div class="item"><span class="swatch" style="background:#222"></span>Vasútvonal</div>
-
-  <hr style="border:none;border-top:1px solid #eee;margin:10px 0;">
-
-  <b>HubScore súlyok</b>
-  <div id="hubWeightsLegend" style="margin-top:6px;"></div>
-</div>
-
 <div id="map"></div>
+
+<div class="app-shell">
+  <div class="topbar">
+    <div class="topbar-title">
+      <div class="eyebrow">HU Dashboard</div>
+      <h1>Ellátásbiztonsági index <span class="badge">MAP-V24</span></h1>
+      <div class="subtitle">Megyei termelési, hozzáférési, logisztikai és tartalék mutatók egyesített térképe.</div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric-card">
+        <div class="metric-label">Szcenárió</div>
+        <div class="metric-value" id="scenarioInfoTop">Normál (45/35/20)</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Állapot</div>
+        <div class="metric-value" id="statusTop">Betöltés…</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Mutató</div>
+        <div class="metric-value" id="metricTop">Index</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Adatforrás</div>
+        <div class="metric-value" id="sourcesTop">Eurostat · KSH · baseline</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="mobile-toggle" id="mobileToggle">☰ Vezérlőpanel</button>
+
+  <div class="panel" id="controlPanel">
+    <div class="section">
+      <div class="section-title">Mutató és szcenárió</div>
+      <div class="row">
+        <label class="block-label"><b>Mutató</b></label>
+        <select id="metric">
+          <option value="index">Index</option>
+          <option value="prod">Termelés (kuk+búza)</option>
+          <option value="buffer">Tartalék (baseline)</option>
+          <option value="access">Hozzáférés (eff)</option>
+          <option value="access_pop">PopScore</option>
+          <option value="hub">HubScore (súlyozott)</option>
+          <option value="transport">TransportScore (vasút)</option>
+          <option value="logi">LogiScore (hub+vasút)</option>
+          <option value="station">StationScore</option>
+          <option value="rail">RailScore</option>
+        </select>
+      </div>
+
+      <div class="button-grid" style="margin-top:10px;">
+        <button class="btn active" id="btnNormal">Normál</button>
+        <button class="btn" id="btnDrought">Aszály</button>
+        <button class="btn" id="btnLogistics">Logisztika</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Rétegek</div>
+      <div class="small" style="margin-top:0;margin-bottom:8px;">Pontok</div>
+      <div class="chip-grid">
+        <span class="chip on" id="chipProcessing">Feldolgozó</span>
+        <span class="chip on" id="chipHub">Csomópont</span>
+        <span class="chip on" id="chipDistribution">Elosztás</span>
+        <span class="chip" id="chipStations">Vasútállomások</span>
+        <span class="chip" id="chipProcessingOSM">Feldolgozó (OSM)</span>
+        <span class="chip on" id="chipMills">Lisztmalmok</span>
+      </div>
+
+      <div class="small" style="margin-bottom:8px;">Vonalak</div>
+      <div class="chip-grid">
+        <span class="chip on" id="chipRail">Vasútvonal</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Súlyok</div>
+      <div class="small" style="margin-top:0;"><b>Összeg 1-re normalizálva</b></div>
+
+      <div class="sliders">
+        <div class="srow">
+          <label>Prod</label>
+          <input id="wProd" type="range" min="0" max="100" value="45" />
+          <div class="val" id="wProdVal">0.45</div>
+        </div>
+
+        <div class="srow">
+          <label>Access</label>
+          <input id="wAccess" type="range" min="0" max="100" value="35" />
+          <div class="val" id="wAccessVal">0.35</div>
+        </div>
+
+        <div class="srow">
+          <label>Buffer</label>
+          <input id="wBuffer" type="range" min="0" max="100" value="20" />
+          <div class="val" id="wBufferVal">0.20</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Logisztika – összetétel</div>
+      <div class="srow">
+        <label>Logi vs Pop (α)</label>
+        <input id="alpha" type="range" min="0" max="100" value="55" />
+        <div class="val" id="alphaVal">0.55</div>
+      </div>
+
+      <div class="srow">
+        <label>Hub vs Transport (γ)</label>
+        <input id="gamma" type="range" min="0" max="100" value="60" />
+        <div class="val" id="gammaVal">0.60</div>
+      </div>
+
+      <div class="srow">
+        <label>Station vs Rail (β)</label>
+        <input id="beta" type="range" min="0" max="100" value="60" />
+        <div class="val" id="betaVal">0.60</div>
+      </div>
+
+      <div class="status-box">
+        <div class="small" id="alphaHint">Aktív mód: Normál/Aszály → Access = PopScore</div>
+        <div class="small" id="sumInfo">Súlyösszeg = 1.00</div>
+        <div class="small" id="scenarioInfo">Szcenárió: Normál (45/35/20)</div>
+        <div class="small" id="status">Státusz: betöltés…</div>
+        <div class="small" id="sources"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="section" style="margin-bottom:12px;">
+      <div class="section-title">Jelmagyarázat</div>
+      <div class="small" style="margin-top:0;">Megye színezés</div>
+      <div class="item"><span class="swatch" style="background:#f7fbff"></span><span>0–19</span></div>
+      <div class="item"><span class="swatch" style="background:#deebf7"></span><span>20–39</span></div>
+      <div class="item"><span class="swatch" style="background:#c6dbef"></span><span>40–59</span></div>
+      <div class="item"><span class="swatch" style="background:#9ecae1"></span><span>60–79</span></div>
+      <div class="item"><span class="swatch" style="background:#6baed6"></span><span>80–100</span></div>
+      <div class="item"><span class="swatch" style="background:#dddddd"></span><span>Nincs adat</span></div>
+    </div>
+
+    <div class="section" style="margin-bottom:12px;">
+      <div class="section-title">Pontok és vonalak</div>
+      <div class="item"><span class="swatch" style="background:#e74c3c"></span><span>Feldolgozó</span></div>
+      <div class="item"><span class="swatch" style="background:#3498db"></span><span>Csomópont</span></div>
+      <div class="item"><span class="swatch" style="background:#2ecc71"></span><span>Elosztás</span></div>
+      <div class="item"><span class="swatch" style="background:#8e44ad"></span><span>Lisztmalom</span></div>
+      <div class="item"><span class="swatch" style="background:#e74c3c;border:1px dashed rgba(255,255,255,.45)"></span><span>Feldolgozó (OSM)</span></div>
+      <div class="item"><span class="swatch" style="background:#0066ff"></span><span>Vasútállomás</span></div>
+      <div class="item"><span class="swatch" style="background:#222"></span><span>Vasútvonal</span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">HubScore súlyok</div>
+      <div id="hubWeightsLegend" style="margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <div class="map-caption">
+    <div>Regional operating picture: megyei ellátásbiztonsági helyzetkép, termelési és logisztikai rétegekkel.</div>
+    <div>Bal panel: vezérlés · Jobb panel: jelmagyarázat</div>
+  </div>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -214,6 +611,12 @@
   const sourcesEl = document.getElementById("sources");
   const scenarioInfoEl = document.getElementById("scenarioInfo");
   const metricSelect = document.getElementById("metric");
+  const statusTopEl = document.getElementById("statusTop");
+  const sourcesTopEl = document.getElementById("sourcesTop");
+  const scenarioInfoTopEl = document.getElementById("scenarioInfoTop");
+  const metricTopEl = document.getElementById("metricTop");
+  const controlPanel = document.getElementById("controlPanel");
+  const mobileToggle = document.getElementById("mobileToggle");
 
   const wProdEl = document.getElementById("wProd");
   const wAccessEl = document.getElementById("wAccess");
@@ -244,9 +647,44 @@
   const betaValEl  = document.getElementById("betaVal");
   const alphaHintEl = document.getElementById("alphaHint");
 
-  function setStatus(html){ statusEl.innerHTML = "Státusz: " + html; }
-  function setSources(html){ sourcesEl.innerHTML = html || ""; }
-  function setScenarioLabel(text){ scenarioInfoEl.textContent = "Szcenárió: " + text; }
+  const metricLabels = {
+    index: "Index",
+    prod: "Termelés (kuk+búza)",
+    buffer: "Tartalék",
+    access: "Hozzáférés (eff)",
+    access_pop: "PopScore",
+    hub: "HubScore",
+    transport: "TransportScore",
+    logi: "LogiScore",
+    station: "StationScore",
+    rail: "RailScore"
+  };
+
+  function updateTopMetric(){
+    if (metricTopEl) metricTopEl.textContent = metricLabels[metricSelect.value] || metricSelect.options[metricSelect.selectedIndex].text;
+  }
+
+  function setStatus(html){
+    statusEl.innerHTML = "Státusz: " + html;
+    if (statusTopEl) statusTopEl.textContent = String((html || "").replace(/<[^>]*>/g, "")).trim() || "—";
+  }
+  function setSources(html){
+    sourcesEl.innerHTML = html || "";
+    if (sourcesTopEl) {
+      const cleaned = String((html || "").replace(/<[^>]*>/g, "")).trim();
+      sourcesTopEl.textContent = cleaned.length > 42 ? cleaned.slice(0,42) + "…" : (cleaned || "—");
+    }
+  }
+  function setScenarioLabel(text){
+    scenarioInfoEl.textContent = "Szcenárió: " + text;
+    if (scenarioInfoTopEl) scenarioInfoTopEl.textContent = text;
+  }
+
+  if (mobileToggle) {
+    mobileToggle.addEventListener("click", function(){
+      controlPanel.classList.toggle("open");
+    });
+  }
 
   const map = L.map('map').setView([47.16, 19.5], 7);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
@@ -437,6 +875,8 @@
     alphaHintEl.textContent = (currentScenario === "logistics")
       ? "Logisztika aktív: Access = α·LogiScore + (1–α)·PopScore; LogiScore = γ·Hub + (1–γ)·Transport; Transport = β·Station + (1–β)·Rail"
       : "Normál/Aszály: Access = PopScore (α/β/γ nem számít)";
+
+    updateTopMetric();
   }
 
   function computeTransport(stationScore, railScore){
@@ -499,7 +939,7 @@
     const metric = metricSelect.value;
     const d = calcByNutsId[id];
     const v = d ? Number(d[metric]) : null;
-    return { color:"#333", weight:1, fillColor:getColor(v), fillOpacity:0.6 };
+    return { color:"#243547", weight:1, fillColor:getColor(v), fillOpacity:0.68 };
   }
 
   function refresh(){
@@ -546,10 +986,11 @@
     refresh();
   }));
 
-  metricSelect.addEventListener("change", ()=>{ if (nutsLayer) nutsLayer.setStyle(baseStyle); });
+  metricSelect.addEventListener("change", ()=>{ updateTopMetric(); if (nutsLayer) nutsLayer.setStyle(baseStyle); });
 
   [alphaEl,gammaEl,betaEl].forEach(el => el.addEventListener("input", ()=>{
     if (currentScenario === "logistics") metricSelect.value = "access";
+    updateTopMetric();
     refresh();
   }));
 
@@ -595,7 +1036,7 @@
         const p = feature.properties || {};
         const name = p.name || "Pont";
         const type = p.type || "unknown";
-        layer.bindPopup("<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#555'>"+escapeHtml(type)+"</span>");
+        layer.bindPopup("<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#93a4b8'>"+escapeHtml(type)+"</span>");
       }
     });
 
@@ -649,7 +1090,7 @@
           (tags.man_made ? ("man_made="+tags.man_made) : "") ||
           (tags.craft ? ("craft="+tags.craft) : "") ||
           (tags.historic ? ("historic="+tags.historic) : "");
-        layer.bindPopup("<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#555'>"+escapeHtml(note)+"</span>");
+        layer.bindPopup("<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#93a4b8'>"+escapeHtml(note)+"</span>");
       }
     });
 
@@ -677,7 +1118,7 @@
         const p = feature.properties || {};
         const name = p.company || p.name || "Lisztmalom";
         const addr = p.address || p.cim || p["cím"] || "";
-        layer.bindPopup("<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#555'>"+escapeHtml(addr)+"</span>");
+        layer.bindPopup("<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#93a4b8'>"+escapeHtml(addr)+"</span>");
       }
     });
 
@@ -711,10 +1152,7 @@
       ["Lisztmalom", HUB_WEIGHTS.flour_mill]
     ];
     el.innerHTML = rows.map(([label, w]) =>
-      `<div class="item" style="justify-content:space-between;">
-         <span>${label}</span>
-         <span style="font-variant-numeric:tabular-nums;"><b>${Number(w).toFixed(2)}</b></span>
-       </div>`
+      `<div class="item"><span>${label}</span><span style="font-variant-numeric:tabular-nums;"><b>${Number(w).toFixed(2)}</b></span></div>`
     ).join("");
   }
 
@@ -927,9 +1365,9 @@
     const hw = d && Number.isFinite(d.hub_wsum) ? d.hub_wsum : null;
 
     const modeLine = (currentScenario==="logistics")
-      ? "<div style='font-size:11px;color:#555;margin-top:6px;'><b>Logisztika aktív</b><br>" +
+      ? "<div style='font-size:11px;color:#93a4b8;margin-top:6px;'><b>Logisztika aktív</b><br>" +
         "α="+a.toFixed(2)+", γ="+g.toFixed(2)+", β="+b.toFixed(2)+"</div>"
-      : "<div style='font-size:11px;color:#555;margin-top:6px;'><b>Normál/Aszály:</b> Access = Pop</div>";
+      : "<div style='font-size:11px;color:#93a4b8;margin-top:6px;'><b>Normál/Aszály:</b> Access = Pop</div>";
 
     const hubLine = (d && d.hub!=null)
       ? ("<b>HubScore:</b> "+d.hub +
@@ -958,8 +1396,8 @@
     ) : "<i>Nincs adat</i>";
 
     return (
-      "<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#555'>"+escapeHtml(id)+"</span>" +
-      "<hr style='border:none;border-top:1px solid #eee;margin:8px 0'/>" +
+      "<b>"+escapeHtml(name)+"</b><br><span style='font-size:12px;color:#93a4b8'>"+escapeHtml(id)+"</span>" +
+      "<hr style='border:none;border-top:1px solid rgba(255,255,255,.12);margin:8px 0'/>" +
       vals + modeLine
     );
   }
@@ -1071,7 +1509,7 @@
     });
 
     if (railLayer) { map.removeLayer(railLayer); railLayer = null; }
-    railLayer = L.geoJSON(railFC, { style: () => ({ color:"#222", weight:3, opacity:0.95 }) });
+    railLayer = L.geoJSON(railFC, { style: () => ({ color:"#111827", weight:3, opacity:0.95 }) });
     if (showRail) railLayer.addTo(map);
     railLayer.bringToBack();
 
@@ -1172,3 +1610,4 @@
 
 </body>
 </html>
+
