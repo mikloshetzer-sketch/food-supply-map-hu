@@ -1,0 +1,42 @@
+name: Build Agriculture Database
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-agri-database:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository letöltése
+        uses: actions/checkout@v4
+
+      - name: Python telepítése
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Python csomagok telepítése
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas openpyxl numpy
+
+      - name: Agrár adatbázis generálása
+        run: |
+          python tools/build_master_agri_database.py
+
+      - name: Eredmény ellenőrzése
+        run: |
+          ls -lah data/agriculture/
+          head -n 5 data/agriculture/master_agri_database.csv
+
+      - name: Változások commitolása
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/agriculture/master_agri_database.csv data/agriculture/climate_station_yearly.csv
+          git diff --cached --quiet || git commit -m "Build agriculture master database"
+          git push
