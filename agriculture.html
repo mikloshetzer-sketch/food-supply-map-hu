@@ -1,132 +1,131 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Magyar Agrár-, Klíma- és Élelmiszerbiztonsági Monitor</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    :root{--bg:#f3f7ef;--panel:#fff;--panel2:#f8faf5;--text:#1f2933;--muted:#65748b;--accent:#2f855a;--border:#d8e2d0;--shadow:rgba(37,67,45,.12)}
-    *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
-    header{padding:22px 26px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,#f7fee7,#dcfce7,#bbf7d0)}
-    header h1{margin:0 0 6px 0;font-size:28px;color:#14532d} header p{margin:0;color:#365646;font-size:15px}
-    nav{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap} nav a{color:#14532d;background:rgba(255,255,255,.65);text-decoration:none;border:1px solid #a7d7b9;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700}
-    .top-layout{display:grid;grid-template-columns:320px 1fr;gap:16px;padding:16px}
-    .panel,.insight{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 12px 28px var(--shadow)}
-    .panel h2{font-size:18px;margin:0 0 14px;color:#243b2d}
-    label{display:block;margin-top:12px;margin-bottom:6px;color:var(--muted);font-size:13px;font-weight:700}
-    select,input[type=range]{width:100%} select{padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:14px} input[type=range]{accent-color:var(--accent)}
-    button{border:0;border-radius:999px;padding:9px 14px;background:#2f855a;color:white;font-weight:800;cursor:pointer;margin-right:8px;margin-top:10px}
-    button.secondary{background:#64748b}.year-value{font-size:32px;font-weight:800;margin-top:8px;color:var(--accent)}
-    .metric-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px;margin-top:14px}
-    .metric{background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:12px;min-height:82px}
-    .metric span{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:700}.metric strong{display:block;font-size:19px;color:#16251c}
-    .risk{display:inline-block;padding:7px 12px;border-radius:999px;font-weight:800;font-size:13px;border:1px solid transparent}.risk.low{background:#dcfce7;color:#166534;border-color:#86efac}.risk.medium{background:#fef9c3;color:#854d0e;border-color:#fde68a}.risk.high{background:#ffedd5;color:#9a3412;border-color:#fdba74}.risk.critical{background:#fee2e2;color:#991b1b;border-color:#fca5a5}.risk.unknown{background:#e5e7eb;color:#374151;border-color:#cbd5e1}
-    .insight-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:0 16px 16px}.insight{background:linear-gradient(180deg,#fff,#f8faf5)}.insight h3{margin:0 0 8px;color:#14532d;font-size:16px}.insight .big{font-size:26px;font-weight:800;color:#1f2933}.insight p{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
-    .analysis-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 16px 16px}.analysis-text{line-height:1.55;color:#334155;background:#f8faf5;border:1px solid var(--border);border-radius:14px;padding:12px}
-    .charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 16px 16px}.chart-panel{min-height:390px}canvas{width:100%!important;height:315px!important}.wide{grid-column:1/3}
-    .note,.status{color:var(--muted);font-size:12px;line-height:1.45;margin-top:12px}.summary-text{line-height:1.55;color:#425466;margin-top:14px;background:#f8faf5;border:1px solid var(--border);border-radius:14px;padding:12px}.error{color:#991b1b;background:#fee2e2;border:1px solid #fca5a5;padding:10px;border-radius:10px;margin-top:10px;font-size:13px}
-    .anim-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}.anim-year{font-size:30px;font-weight:900;color:#2f855a}
-    @media(max-width:1200px){.top-layout{grid-template-columns:1fr}.metric-grid{grid-template-columns:repeat(2,1fr)}.charts,.analysis-row{grid-template-columns:1fr}.wide{grid-column:1}.insight-row{grid-template-columns:1fr}}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Magyar Agrár-, Klíma- és Élelmiszerbiztonsági Monitor</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--bg:#f3f7ef;--panel:#fff;--panel2:#f8faf5;--text:#1f2933;--muted:#65748b;--accent:#2f855a;--border:#d8e2d0;--shadow:rgba(37,67,45,.12)}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+header{padding:22px 26px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,#f7fee7,#dcfce7,#bbf7d0)}
+header h1{margin:0 0 6px;font-size:28px;color:#14532d}header p{margin:0;color:#365646;font-size:15px}
+nav{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}nav a{color:#14532d;background:rgba(255,255,255,.7);text-decoration:none;border:1px solid #a7d7b9;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700}
+.layout{display:grid;grid-template-columns:320px 1fr;gap:16px;padding:16px}.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 12px 28px var(--shadow)}
+.panel h2{font-size:18px;margin:0 0 14px;color:#243b2d}
+label{display:block;margin-top:12px;margin-bottom:6px;color:var(--muted);font-size:13px;font-weight:700}
+select,input[type=range]{width:100%}select{padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:14px}
+button{border:0;border-radius:999px;padding:9px 14px;background:#2f855a;color:white;font-weight:800;cursor:pointer;margin:6px 6px 6px 0}button.secondary{background:#64748b}
+.year-value{font-size:32px;font-weight:800;margin-top:8px;color:var(--accent)}
+.metrics{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:12px;margin-top:14px}.metric{background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:12px;min-height:82px}
+.metric span{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:700}.metric strong{font-size:19px;color:#16251c}
+.insights{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:0 16px 16px}.insight{background:linear-gradient(180deg,#fff,#f8faf5);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 12px 28px var(--shadow)}
+.insight h3{margin:0 0 8px;color:#14532d}.insight .big{font-size:25px;font-weight:800}.insight p{color:var(--muted);font-size:13px;line-height:1.45}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 16px 16px}.wide{grid-column:1/3}.chart-panel{min-height:390px}canvas{width:100%!important;height:315px!important}
+.textbox{line-height:1.55;color:#334155;background:#f8faf5;border:1px solid var(--border);border-radius:14px;padding:12px;margin-top:14px}.note,.status{color:var(--muted);font-size:12px;line-height:1.45;margin-top:12px}.error{color:#991b1b;background:#fee2e2;border:1px solid #fca5a5;padding:10px;border-radius:10px;margin-top:10px}
+.anim-year{font-size:30px;font-weight:900;color:#2f855a}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+@media(max-width:1200px){.layout,.charts{grid-template-columns:1fr}.wide{grid-column:1}.metrics{grid-template-columns:repeat(2,1fr)}.insights{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <header>
-  <h1>Magyar Agrár-, Klíma- és Élelmiszerbiztonsági Monitor</h1>
-  <p>Termőterület, hozam, termésmennyiség, csapadék, vízigény, következtetés és trendbecslés 1990–2030 között.</p>
-  <nav><a href="index.html">Food Supply Map főoldal</a><a href="agriculture.html">Agrár-klíma monitor</a><a href="data/agriculture/master_agri_database.csv">Adatbázis CSV</a></nav>
+<h1>Magyar Agrár-, Klíma- és Élelmiszerbiztonsági Monitor</h1>
+<p>Csapadék–hozam kapcsolat, hozamveszteség, önellátás, Climate Impact Score és animált évváltó diagram.</p>
+<nav><a href="index.html">Food Supply Map főoldal</a><a href="agriculture.html">Agrár-klíma monitor</a><a href="data/agriculture/master_agri_database.csv">Adatbázis CSV</a></nav>
 </header>
 
-<main class="top-layout">
-  <aside class="panel">
-    <h2>Vezérlés</h2>
-    <label for="yearRange">Év</label><input type="range" id="yearRange" min="1990" max="2025" value="2025"><div class="year-value" id="yearValue">2025</div>
-    <label for="cropSelect">Kiemelt növény</label><select id="cropSelect"></select>
-    <label for="multiCropSelect">Összehasonlító diagramok növényei</label><select id="multiCropSelect" multiple size="8"></select>
-    <div class="status" id="dataStatus">Adatok betöltése...</div><div id="errorBox"></div>
-    <div class="note">A Ctrl gombbal több növény is kijelölhető.</div>
-  </aside>
-  <section class="panel">
-    <h2>Éves összkép</h2><div id="riskBadge" class="risk unknown">ismeretlen</div>
-    <div class="metric-grid">
-      <div class="metric"><span>Termőterület</span><strong id="areaValue">–</strong></div><div class="metric"><span>Termés</span><strong id="productionValue">–</strong></div><div class="metric"><span>Termésátlag</span><strong id="yieldValue">–</strong></div><div class="metric"><span>Népesség</span><strong id="populationValue">–</strong></div><div class="metric"><span>Önellátási arány</span><strong id="selfValue">–</strong></div>
-      <div class="metric"><span>Eltartható népesség</span><strong id="supportedValue">–</strong></div><div class="metric"><span>Csapadék</span><strong id="precipValue">–</strong></div><div class="metric"><span>Szükséges csapadék</span><strong id="neededRainValue">–</strong></div><div class="metric"><span>Vízmérleg</span><strong id="waterValue">–</strong></div><div class="metric"><span>Napsütés</span><strong id="sunValue">–</strong></div>
-    </div>
-    <div class="summary-text" id="interpretation">Válassz évet és növényt az értelmezéshez.</div>
-  </section>
+<main class="layout">
+<aside class="panel">
+<h2>Vezérlés</h2>
+<label>Év</label><input type="range" id="yearRange"><div class="year-value" id="yearValue">–</div>
+<label>Kiemelt növény</label><select id="cropSelect"></select>
+<label>Összehasonlító növények</label><select id="multiCropSelect" multiple size="8"></select>
+<div class="status" id="dataStatus">Adatok betöltése...</div><div id="errorBox"></div>
+<div class="note">A vegetációs csapadék és ármodul későbbi havi/időszaki adatbővítést igényel.</div>
+</aside>
+
+<section class="panel">
+<h2>Éves összkép</h2>
+<div class="metrics">
+<div class="metric"><span>Termőterület</span><strong id="areaValue">–</strong></div>
+<div class="metric"><span>Termés</span><strong id="productionValue">–</strong></div>
+<div class="metric"><span>Hozam</span><strong id="yieldValue">–</strong></div>
+<div class="metric"><span>Csapadék</span><strong id="precipValue">–</strong></div>
+<div class="metric"><span>Vízmérleg</span><strong id="waterValue">–</strong></div>
+<div class="metric"><span>Önellátás</span><strong id="selfValue">–</strong></div>
+<div class="metric"><span>Eltartható népesség</span><strong id="supportedValue">–</strong></div>
+<div class="metric"><span>Hozamveszteség</span><strong id="yieldLossValue">–</strong></div>
+<div class="metric"><span>Csapadékhiány</span><strong id="precipDeficitValue">–</strong></div>
+<div class="metric"><span>Climate Impact Score</span><strong id="climateScoreValue">–</strong></div>
+</div>
+<div class="textbox" id="autoInsight">Az adatok betöltése után itt jelenik meg az automatikus értékelés.</div>
+</section>
 </main>
 
-<section class="insight-row">
-  <div class="insight"><h3>Eltartható népesség</h3><div class="big" id="insightSupported">–</div><p>Az adott növény termése elméletileg hány ember éves szükségletét fedezné.</p></div>
-  <div class="insight"><h3>Önellátási tartalék</h3><div class="big" id="insightReserve">–</div><p>A tényleges termés és a becsült hazai szükséglet különbsége.</p></div>
-  <div class="insight"><h3>Aszály / vízmérleg jelzés</h3><div class="big" id="insightDrought">–</div><p>Az éves csapadék és a becsült növényi vízigény különbsége.</p></div>
-</section>
-
-<section class="analysis-row">
-  <div class="panel">
-    <h2>Automatikus következtetés</h2>
-    <div class="analysis-text" id="autoInsight">Az adatok betöltése után itt jelenik meg az értékelés.</div>
-  </div>
-  <div class="panel">
-    <h2>Trendalapú becslés 2026–2030</h2>
-    <div class="analysis-text" id="forecastText">A kiválasztott növény 5 éves trendje alapján készülő óvatos becslés.</div>
-  </div>
+<section class="insights">
+<div class="insight"><h3>Csapadék–hozam korreláció</h3><div class="big" id="corrValue">–</div><p>A kiválasztott növénynél az éves csapadék és hozam kapcsolata.</p></div>
+<div class="insight"><h3>Climate Impact</h3><div class="big" id="impactLabel">–</div><p>Csapadékeltérés, vízmérleg, hozameltérés és önellátás alapján.</p></div>
+<div class="insight"><h3>Trendbecslés 2030</h3><div class="big" id="forecastProduction">–</div><p>Egyszerű 5 éves lineáris trend, nem időjárási modell.</p></div>
+<div class="insight"><h3>Ármodul státusz</h3><div class="big">Később</div><p>Búza/kukorica árakhoz külön ár-idősor szükséges.</p></div>
 </section>
 
 <section class="charts">
-  <div class="panel chart-panel wide">
-    <h2>Animált évváltó oszlopdiagram</h2>
-    <div class="anim-toolbar">
-      <button id="playBtn">Lejátszás</button><button class="secondary" id="stopBtn">Megállítás</button>
-      <label style="margin:0;width:160px">Sebesség<select id="speedSelect"><option value="1200">lassú</option><option value="750" selected>közepes</option><option value="350">gyors</option></select></label>
-      <label style="margin:0;width:220px">Mutató<select id="animMetric"><option value="production_t">Termésmennyiség</option><option value="area_kha">Termőterület</option><option value="yield_kg_ha">Terméshozam</option><option value="supported_population">Eltartható népesség</option></select></label>
-      <div class="anim-year" id="animYear">1990</div>
-    </div>
-    <canvas id="animatedBarChart"></canvas>
-  </div>
+<div class="panel chart-panel wide">
+<h2>Animált évváltó oszlopdiagram</h2>
+<div class="toolbar">
+<button id="playBtn">Lejátszás</button><button class="secondary" id="stopBtn">Megállítás</button>
+<label style="width:170px">Sebesség<select id="speedSelect"><option value="1200">lassú</option><option value="750" selected>közepes</option><option value="350">gyors</option></select></label>
+<label style="width:240px">Mutató<select id="animMetric"><option value="production_t">Termésmennyiség</option><option value="area_kha">Termőterület</option><option value="yield_kg_ha">Terméshozam</option><option value="supported_population">Eltartható népesség</option><option value="climate_impact_score">Climate Impact Score</option></select></label>
+<div class="anim-year" id="animYear">–</div>
+</div>
+<canvas id="animatedBarChart"></canvas>
+</div>
 
-  <div class="panel chart-panel"><h2>1. Termőterületek változása növényenként</h2><canvas id="areaTrendChart"></canvas></div>
-  <div class="panel chart-panel"><h2>2. Terméshozam változása növényenként</h2><canvas id="yieldTrendChart"></canvas></div>
-  <div class="panel chart-panel"><h2>3. Termésmennyiség változása növényenként</h2><canvas id="productionTrendChart"></canvas></div>
-  <div class="panel chart-panel"><h2>4. Csapadék mennyisége évről évre</h2><canvas id="precipTrendChart"></canvas></div>
-  <div class="panel chart-panel wide"><h2>5. Tényleges csapadék és szükséges csapadék összevetése</h2><canvas id="waterNeedChart"></canvas><div class="note">A szükséges csapadék jelenleg éves középértékes becslés.</div></div>
-  <div class="panel chart-panel"><h2>6. Eltartható népesség 1990–2025</h2><canvas id="supportedPopulationChart"></canvas></div>
-  <div class="panel chart-panel"><h2>7. Önellátási arány 1990–2025</h2><canvas id="selfSufficiencyChart"></canvas></div>
-  <div class="panel chart-panel wide"><h2>8. Aszályindex / vízmérleg 1990–2025</h2><canvas id="droughtIndexChart"></canvas><div class="note">Negatív érték esetén az éves csapadék a becsült vízigény alatt maradt.</div></div>
+<div class="panel chart-panel"><h2>1. Termőterület növényenként</h2><canvas id="areaTrendChart"></canvas></div>
+<div class="panel chart-panel"><h2>2. Terméshozam növényenként</h2><canvas id="yieldTrendChart"></canvas></div>
+<div class="panel chart-panel"><h2>3. Termésmennyiség növényenként</h2><canvas id="productionTrendChart"></canvas></div>
+<div class="panel chart-panel"><h2>4. Csapadék évről évre</h2><canvas id="precipTrendChart"></canvas></div>
+<div class="panel chart-panel"><h2>5. Csapadék és hozam kapcsolata</h2><canvas id="precipYieldScatter"></canvas></div>
+<div class="panel chart-panel"><h2>6. Hozamveszteség és csapadékhiány</h2><canvas id="yieldLossChart"></canvas></div>
+<div class="panel chart-panel"><h2>7. Csapadék és önellátás</h2><canvas id="precipSelfChart"></canvas></div>
+<div class="panel chart-panel"><h2>8. Climate Impact Score</h2><canvas id="climateImpactChart"></canvas></div>
+<div class="panel chart-panel wide"><h2>9. Tényleges csapadék és szükséges csapadék</h2><canvas id="waterNeedChart"></canvas></div>
 </section>
 
 <script>
 const DATA_URL="data/agriculture/master_agri_database.csv";let agriData=[],charts={},animTimer=null,animIndex=0;
 const cropLabels={wheat:"Búza",maize:"Kukorica",barley:"Árpa",rye:"Rozs",oats:"Zab",sunflower:"Napraforgó",rapeseed:"Repce",soybean:"Szója",potato:"Burgonya",sugar_beet:"Cukorrépa"};
-const chartColors={wheat:"#ca8a04",maize:"#facc15",barley:"#84cc16",rye:"#78716c",oats:"#a3e635",sunflower:"#f59e0b",rapeseed:"#22c55e",soybean:"#2563eb",potato:"#92400e",sugar_beet:"#db2777"};
-const defaultCrops=["wheat","maize","barley","sunflower","rapeseed"];
-function showError(m){document.getElementById("errorBox").innerHTML=`<div class="error">${m}</div>`}
-function parseCSVLine(line){const r=[];let c="",q=false;for(let i=0;i<line.length;i++){const ch=line[i],n=line[i+1];if(ch=='"'&&q&&n=='"'){c+='"';i++}else if(ch=='"'){q=!q}else if(ch==","&&!q){r.push(c);c=""}else c+=ch}r.push(c);return r}
-function parseCSV(text){const lines=text.replace(/^\uFEFF/,"").split(/\r?\n/).filter(l=>l.trim().length>0);if(lines.length<2)throw new Error("A CSV üres vagy csak fejlécet tartalmaz.");const headers=parseCSVLine(lines[0]).map(h=>h.trim().replace(/^\uFEFF/,""));const rows=[];for(let i=1;i<lines.length;i++){const values=parseCSVLine(lines[i]);const row={};headers.forEach((h,idx)=>{const raw=values[idx]??"",v=raw.trim();if(["crop","crop_hu","risk_level"].includes(h))row[h]=v;else{const num=Number(v);row[h]=v===""||Number.isNaN(num)?null:num}});if(row.year&&row.crop)rows.push(row)}return rows}
-async function loadData(){const response=await fetch(DATA_URL,{cache:"no-store"});if(!response.ok)throw new Error(`Nem találom a CSV-t: ${DATA_URL}. HTTP státusz: ${response.status}`);const rows=parseCSV(await response.text());if(!rows.length)throw new Error("A CSV betöltődött, de nincs értelmezhető adat.");return rows}
-function fmtNumber(v,d=0){if(v===null||v===undefined||isNaN(v))return"–";return Number(v).toLocaleString("hu-HU",{maximumFractionDigits:d,minimumFractionDigits:d})}
-function fmtPercent(v){if(v===null||v===undefined||isNaN(v))return"–";return(Number(v)*100).toLocaleString("hu-HU",{maximumFractionDigits:0})+"%"}
-function getYears(){return[...new Set(agriData.map(r=>Number(r.year)))].sort((a,b)=>a-b)}
-function getAvailableCrops(){return[...new Set(agriData.map(r=>r.crop))].filter(Boolean)}
-function fillSelectors(){const crops=getAvailableCrops(),cs=document.getElementById("cropSelect"),ms=document.getElementById("multiCropSelect");cs.innerHTML="";ms.innerHTML="";crops.forEach(crop=>{const label=cropLabels[crop]||crop;const o=document.createElement("option");o.value=crop;o.textContent=label;if(crop==="wheat")o.selected=true;cs.appendChild(o);const o2=document.createElement("option");o2.value=crop;o2.textContent=label;if(defaultCrops.includes(crop))o2.selected=true;ms.appendChild(o2)});const years=getYears(),yr=document.getElementById("yearRange");yr.min=Math.min(...years);yr.max=Math.max(...years);yr.value=Math.max(...years);document.getElementById("yearValue").textContent=yr.value}
-function getSelectedCrops(){return Array.from(document.getElementById("multiCropSelect").selectedOptions).map(o=>o.value)}
-function getSelectedRow(){const y=Number(document.getElementById("yearRange").value),c=document.getElementById("cropSelect").value;return agriData.find(r=>Number(r.year)===y&&r.crop===c)}
-function riskText(r){return{low:"alacsony kockázat",medium:"közepes kockázat",high:"magas kockázat",critical:"kritikus kockázat",unknown:"ismeretlen"}[r]||"ismeretlen"}
-function avgLastYears(crop,metric,endYear,count){const vals=agriData.filter(r=>r.crop===crop&&r.year<endYear&&r.year>=endYear-count).map(r=>Number(r[metric])).filter(v=>!isNaN(v));return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null}
-function forecastRows(crop){const rows=agriData.filter(r=>r.crop===crop).sort((a,b)=>a.year-b.year),last=rows.slice(-5);if(last.length<2)return[];const metrics=["area_ha","yield_t_ha","production_t","water_balance_mm","self_sufficiency_ratio"];const out=[];for(let year=2026;year<=2030;year++){let obj={year,crop};metrics.forEach(m=>{const first=last[0][m],final=last[last.length-1][m],slope=(final-first)/(last.length-1);obj[m]=Math.max(0,final+slope*(year-2025))});out.push(obj)}return out}
-function updateAutoInsight(row){if(!row)return;const cropName=cropLabels[row.crop]||row.crop;const avgYield=avgLastYears(row.crop,"yield_t_ha",row.year,5);const yieldDiff=avgYield?((row.yield_t_ha-avgYield)/avgYield*100):null;let msg=`<strong>${row.year} – ${cropName}:</strong> `;if(row.water_balance_mm< -100)msg+=`a vízmérleg erősen negatív (${fmtNumber(row.water_balance_mm,1)} mm), ami aszályos termelési környezetre utal. `;else if(row.water_balance_mm<0)msg+=`a vízmérleg enyhén negatív (${fmtNumber(row.water_balance_mm,1)} mm), vagyis a csapadék nem érte el a becsült vízigényt. `;else msg+=`a vízmérleg pozitív (${fmtNumber(row.water_balance_mm,1)} mm), tehát éves szinten a csapadék meghaladta a becsült vízigényt. `;if(yieldDiff!==null){msg+=`A hozam az előző 5 év átlagához képest <strong>${yieldDiff>=0?"+":""}${fmtNumber(yieldDiff,1)}%</strong>-kal tér el. `}if(row.self_sufficiency_ratio>=1.5)msg+=`Az önellátási helyzet stabil, mert a termelés jelentősen meghaladja a becsült hazai szükségletet.`;else if(row.self_sufficiency_ratio>=1)msg+=`Az önellátás teljesül, de a tartalék mérsékeltebb.`;else msg+=`Az önellátási arány 100% alatt van, ami import- vagy készletkitettséget jelezhet.`;document.getElementById("autoInsight").innerHTML=msg}
-function updateForecast(row){if(!row)return;const cropName=cropLabels[row.crop]||row.crop,fr=forecastRows(row.crop);if(!fr.length){document.getElementById("forecastText").innerHTML="Nincs elég adat a becsléshez.";return}const last=fr[fr.length-1];document.getElementById("forecastText").innerHTML=`<strong>${cropName} trendbecslés 2030-ra:</strong><br>Termőterület: <strong>${fmtNumber(last.area_ha,0)} ha</strong><br>Hozam: <strong>${fmtNumber(last.yield_t_ha,2)} t/ha</strong><br>Termés: <strong>${fmtNumber(last.production_t,0)} t</strong><br>Vízmérleg: <strong>${fmtNumber(last.water_balance_mm,1)} mm</strong><br><br><em>Ez egyszerű 5 éves lineáris trend, nem időjárási modell.</em>`}
-function updateMetrics(){const row=getSelectedRow(),year=document.getElementById("yearRange").value,crop=document.getElementById("cropSelect").value,cropName=cropLabels[crop]||crop;document.getElementById("yearValue").textContent=year;if(!row){document.getElementById("dataStatus").textContent="Nincs adat ehhez a választáshoz.";return}const reserve=row.production_t-row.food_need_t;document.getElementById("dataStatus").textContent=`Adatok betöltve: ${agriData.length} sor.`;document.getElementById("areaValue").textContent=fmtNumber(row.area_ha,0)+" ha";document.getElementById("productionValue").textContent=fmtNumber(row.production_t,0)+" t";document.getElementById("yieldValue").textContent=fmtNumber(row.yield_t_ha,2)+" t/ha";document.getElementById("populationValue").textContent=fmtNumber(row.population,0)+" fő";document.getElementById("selfValue").textContent=fmtPercent(row.self_sufficiency_ratio);document.getElementById("supportedValue").textContent=fmtNumber(row.supported_population,0)+" fő";document.getElementById("precipValue").textContent=fmtNumber(row.precip_mm,1)+" mm";document.getElementById("neededRainValue").textContent=fmtNumber(row.water_need_mid_mm,0)+" mm";document.getElementById("waterValue").textContent=fmtNumber(row.water_balance_mm,1)+" mm";document.getElementById("sunValue").textContent=fmtNumber(row.sunshine_hours,0)+" óra";const risk=row.risk_level||"unknown",badge=document.getElementById("riskBadge");badge.className="risk "+risk;badge.textContent=riskText(risk);document.getElementById("insightSupported").textContent=fmtNumber(row.supported_population,0)+" fő";document.getElementById("insightReserve").textContent=fmtNumber(reserve,0)+" t";document.getElementById("insightDrought").textContent=fmtNumber(row.water_balance_mm,1)+" mm";document.getElementById("interpretation").innerHTML=`<strong>${year} – ${cropName}</strong><br>Termőterület: <strong>${fmtNumber(row.area_ha,0)} ha</strong>, termés: <strong>${fmtNumber(row.production_t,0)} tonna</strong>, hozam: <strong>${fmtNumber(row.yield_t_ha,2)} t/ha</strong>. Az éves csapadék <strong>${fmtNumber(row.precip_mm,1)} mm</strong>, a becsült vízigény <strong>${fmtNumber(row.water_need_mid_mm,0)} mm</strong>, a vízmérleg pedig <strong>${fmtNumber(row.water_balance_mm,1)} mm</strong>. Az önellátási arány <strong>${fmtPercent(row.self_sufficiency_ratio)}</strong>.`;updateAutoInsight(row);updateForecast(row)}
-function destroyChart(id){if(charts[id]){charts[id].destroy();charts[id]=null}}
-function lineChart(id,labels,datasets,yTitle){if(typeof Chart==="undefined"){showError("A Chart.js könyvtár nem töltődött be.");return}destroyChart(id);charts[id]=new Chart(document.getElementById(id),{type:"line",data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{labels:{color:"#334155"}}},scales:{x:{ticks:{color:"#475569"},grid:{color:"rgba(100,116,139,.12)"}},y:{title:{display:true,text:yTitle,color:"#475569"},ticks:{color:"#475569"},grid:{color:"rgba(100,116,139,.16)"}}}}})}
-function barChart(id,labels,data,label,yTitle,colors){destroyChart(id);charts[id]=new Chart(document.getElementById(id),{type:"bar",data:{labels,datasets:[{label,data,backgroundColor:colors}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#334155"}}},scales:{x:{ticks:{color:"#475569"}},y:{title:{display:true,text:yTitle,color:"#475569"},ticks:{color:"#475569"}}}}})}
-function buildCropDatasets(crops,metric){const years=getYears();return crops.map(crop=>({label:cropLabels[crop]||crop,data:years.map(year=>{const row=agriData.find(r=>Number(r.year)===year&&r.crop===crop);return row?Number(row[metric]):null}),borderColor:chartColors[crop]||"#2563eb",backgroundColor:chartColors[crop]||"#2563eb",tension:.2}))}
-function updateAnimatedBar(year){const metric=document.getElementById("animMetric").value,rows=agriData.filter(r=>Number(r.year)===year).sort((a,b)=>Number(b[metric])-Number(a[metric]));const labels=rows.map(r=>cropLabels[r.crop]||r.crop),data=rows.map(r=>Number(r[metric])),colors=rows.map(r=>chartColors[r.crop]||"#2563eb");const yTitle={production_t:"tonna",area_kha:"ezer hektár",yield_kg_ha:"kg/ha",supported_population:"fő"}[metric]||"";document.getElementById("animYear").textContent=year;barChart("animatedBarChart",labels,data,"Éves rangsor",yTitle,colors)}
-function playAnimation(){stopAnimation();const years=getYears();animIndex=0;updateAnimatedBar(years[animIndex]);animTimer=setInterval(()=>{animIndex=(animIndex+1)%years.length;updateAnimatedBar(years[animIndex])},Number(document.getElementById("speedSelect").value))}
-function stopAnimation(){if(animTimer){clearInterval(animTimer);animTimer=null}}
-function updateAllCharts(){const crops=getSelectedCrops(),years=getYears(),selectedCrop=document.getElementById("cropSelect").value,selectedRows=agriData.filter(r=>r.crop===selectedCrop).sort((a,b)=>Number(a.year)-Number(b.year));lineChart("areaTrendChart",years,buildCropDatasets(crops,"area_kha"),"ezer hektár");lineChart("yieldTrendChart",years,buildCropDatasets(crops,"yield_kg_ha"),"kg/ha");lineChart("productionTrendChart",years,buildCropDatasets(crops,"production_t"),"tonna");const precipByYear=years.map(year=>{const row=agriData.find(r=>Number(r.year)===year&&r.crop==="wheat");return row?Number(row.precip_mm):null});lineChart("precipTrendChart",years,[{label:"Éves csapadék országos átlag (mm)",data:precipByYear,borderColor:"#2563eb",backgroundColor:"#2563eb",tension:.2}],"mm");lineChart("waterNeedChart",selectedRows.map(r=>r.year),[{label:"Tényleges csapadék (mm)",data:selectedRows.map(r=>Number(r.precip_mm)),borderColor:"#2563eb",backgroundColor:"#2563eb",tension:.2},{label:"Szükséges csapadék / vízigény becslés (mm)",data:selectedRows.map(r=>Number(r.water_need_mid_mm)),borderColor:"#f59e0b",backgroundColor:"#f59e0b",tension:.2},{label:"Vízmérleg (mm)",data:selectedRows.map(r=>Number(r.water_balance_mm)),borderColor:"#16a34a",backgroundColor:"#16a34a",tension:.2}],"mm");lineChart("supportedPopulationChart",selectedRows.map(r=>r.year),[{label:"Eltartható népesség",data:selectedRows.map(r=>Number(r.supported_population)),borderColor:"#2f855a",backgroundColor:"#2f855a",tension:.2}],"fő");lineChart("selfSufficiencyChart",selectedRows.map(r=>r.year),[{label:"Önellátási arány (%)",data:selectedRows.map(r=>Number(r.self_sufficiency_ratio)*100),borderColor:"#7c3aed",backgroundColor:"#7c3aed",tension:.2}],"%");lineChart("droughtIndexChart",selectedRows.map(r=>r.year),[{label:"Vízmérleg / aszályindex (mm)",data:selectedRows.map(r=>Number(r.water_balance_mm)),borderColor:"#dc2626",backgroundColor:"#dc2626",tension:.2}],"mm");updateAnimatedBar(Number(document.getElementById("yearRange").value))}
-function updateAll(){updateMetrics();updateAllCharts()}
-async function init(){try{agriData=await loadData();fillSelectors()}catch(err){console.error(err);document.getElementById("dataStatus").textContent="Adatbetöltési hiba.";showError(err.message);return}document.getElementById("yearRange").addEventListener("input",updateAll);document.getElementById("cropSelect").addEventListener("change",updateAll);document.getElementById("multiCropSelect").addEventListener("change",updateAllCharts);document.getElementById("playBtn").addEventListener("click",playAnimation);document.getElementById("stopBtn").addEventListener("click",stopAnimation);document.getElementById("animMetric").addEventListener("change",()=>updateAnimatedBar(Number(document.getElementById("yearRange").value)));updateAll()}
+const colors={wheat:"#ca8a04",maize:"#facc15",barley:"#84cc16",rye:"#78716c",oats:"#a3e635",sunflower:"#f59e0b",rapeseed:"#22c55e",soybean:"#2563eb",potato:"#92400e",sugar_beet:"#db2777"};
+const defaults=["wheat","maize","barley","sunflower","rapeseed"];
+function err(m){document.getElementById("errorBox").innerHTML=`<div class="error">${m}</div>`}
+function parseLine(line){const r=[];let c="",q=false;for(let i=0;i<line.length;i++){const ch=line[i],n=line[i+1];if(ch=='"'&&q&&n=='"'){c+='"';i++}else if(ch=='"'){q=!q}else if(ch==","&&!q){r.push(c);c=""}else c+=ch}r.push(c);return r}
+function parseCSV(text){const lines=text.replace(/^\uFEFF/,"").split(/\r?\n/).filter(l=>l.trim());const h=parseLine(lines[0]).map(x=>x.trim().replace(/^\uFEFF/,""));return lines.slice(1).map(line=>{const v=parseLine(line),o={};h.forEach((k,i)=>{const val=(v[i]??"").trim();if(["crop","crop_hu","risk_level"].includes(k))o[k]=val;else{o[k]=val===""?null:Number(val)}});return o}).filter(r=>r.year&&r.crop)}
+async function loadData(){const res=await fetch(DATA_URL,{cache:"no-store"});if(!res.ok)throw new Error("CSV nem elérhető: "+res.status);return parseCSV(await res.text())}
+function fmt(v,d=0){if(v==null||isNaN(v))return"–";return Number(v).toLocaleString("hu-HU",{maximumFractionDigits:d,minimumFractionDigits:d})}
+function pct(v,d=0){if(v==null||isNaN(v))return"–";return fmt(v*100,d)+"%"}
+function avg(a){const b=a.filter(x=>x!=null&&!isNaN(x));return b.length?b.reduce((x,y)=>x+y,0)/b.length:null}
+function corr(xs,ys){const p=xs.map((x,i)=>[x,ys[i]]).filter(z=>!isNaN(z[0])&&!isNaN(z[1]));if(p.length<3)return null;const ax=avg(p.map(z=>z[0])),ay=avg(p.map(z=>z[1]));let n=0,dx=0,dy=0;p.forEach(([x,y])=>{n+=(x-ax)*(y-ay);dx+=(x-ax)**2;dy+=(y-ay)**2});return dx&&dy?n/Math.sqrt(dx*dy):null}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function years(){return[...new Set(agriData.map(r=>Number(r.year)))].sort((a,b)=>a-b)}
+function cropRows(c){return agriData.filter(r=>r.crop===c).sort((a,b)=>a.year-b.year)}
+function ref(c,m,s=2010,e=2020){return avg(agriData.filter(r=>r.crop===c&&r.year>=s&&r.year<=e).map(r=>Number(r[m])))}
+function derive(){const precipRef=avg(agriData.filter(r=>r.crop==="wheat"&&r.year>=2010&&r.year<=2020).map(r=>Number(r.precip_mm)));agriData.forEach(r=>{const ry=ref(r.crop,"yield_t_ha");r.ref_yield_t_ha=ry;r.yield_loss_pct=ry?((ry-r.yield_t_ha)/ry*100):null;r.precip_deficit_pct=r.water_need_mid_mm?((r.precip_mm-r.water_need_mid_mm)/r.water_need_mid_mm*100):null;r.precip_anomaly_pct=precipRef?((r.precip_mm-precipRef)/precipRef*100):null;let s=100;s-=Math.max(0,-r.precip_anomaly_pct)*.7;s-=Math.max(0,-r.precip_deficit_pct)*.8;s-=Math.max(0,r.yield_loss_pct)*.9;if(r.self_sufficiency_ratio<1)s-=25;if(r.water_balance_mm<-150)s-=15;else if(r.water_balance_mm<-50)s-=8;r.climate_impact_score=clamp(s,0,100);r.climate_label=r.climate_impact_score>=75?"Alacsony":r.climate_impact_score>=55?"Közepes":r.climate_impact_score>=35?"Magas":"Kritikus"})}
+function fillSelectors(){const crops=[...new Set(agriData.map(r=>r.crop))].filter(Boolean),cs=document.getElementById("cropSelect"),ms=document.getElementById("multiCropSelect");cs.innerHTML="";ms.innerHTML="";crops.forEach(c=>{let o=new Option(cropLabels[c]||c,c);if(c==="wheat")o.selected=true;cs.add(o);let m=new Option(cropLabels[c]||c,c);if(defaults.includes(c))m.selected=true;ms.add(m)});const y=years(),yr=document.getElementById("yearRange");yr.min=Math.min(...y);yr.max=Math.max(...y);yr.value=Math.max(...y);document.getElementById("yearValue").textContent=yr.value}
+function selectedCrops(){return Array.from(document.getElementById("multiCropSelect").selectedOptions).map(o=>o.value)}
+function selectedRow(){const y=Number(document.getElementById("yearRange").value),c=document.getElementById("cropSelect").value;return agriData.find(r=>r.year===y&&r.crop===c)}
+function forecast(c){const last=cropRows(c).slice(-5);if(last.length<2)return null;const first=last[0],final=last[last.length-1],slope=(final.production_t-first.production_t)/(last.length-1);return Math.max(0,final.production_t+slope*5)}
+function updateMetrics(){const r=selectedRow();if(!r)return;const cName=cropLabels[r.crop]||r.crop,cr=corr(cropRows(r.crop).map(x=>x.precip_mm),cropRows(r.crop).map(x=>x.yield_t_ha));document.getElementById("yearValue").textContent=r.year;document.getElementById("dataStatus").textContent=`Adatok betöltve: ${agriData.length} sor`;document.getElementById("areaValue").textContent=fmt(r.area_ha)+" ha";document.getElementById("productionValue").textContent=fmt(r.production_t)+" t";document.getElementById("yieldValue").textContent=fmt(r.yield_t_ha,2)+" t/ha";document.getElementById("precipValue").textContent=fmt(r.precip_mm,1)+" mm";document.getElementById("waterValue").textContent=fmt(r.water_balance_mm,1)+" mm";document.getElementById("selfValue").textContent=pct(r.self_sufficiency_ratio);document.getElementById("supportedValue").textContent=fmt(r.supported_population)+" fő";document.getElementById("yieldLossValue").textContent=r.yield_loss_pct>0?"-"+fmt(r.yield_loss_pct,1)+"%":"+"+fmt(Math.abs(r.yield_loss_pct),1)+"%";document.getElementById("precipDeficitValue").textContent=fmt(r.precip_deficit_pct,1)+"%";document.getElementById("climateScoreValue").textContent=fmt(r.climate_impact_score)+"/100";document.getElementById("corrValue").textContent=cr==null?"–":fmt(cr,2);document.getElementById("impactLabel").textContent=r.climate_label;document.getElementById("forecastProduction").textContent=fmt(forecast(r.crop))+" t";document.getElementById("autoInsight").innerHTML=`<strong>${r.year} – ${cName}:</strong> csapadék ${fmt(r.precip_mm,1)} mm, vízmérleg ${fmt(r.water_balance_mm,1)} mm. A hozam a 2010–2020-as referenciaátlaghoz képest ${r.yield_loss_pct>0?"alacsonyabb":"magasabb"} (${r.yield_loss_pct>0?"-":"+"}${fmt(Math.abs(r.yield_loss_pct),1)}%). A csapadék–hozam korreláció: <strong>${cr==null?"nincs elég adat":fmt(cr,2)}</strong>. Climate Impact Score: <strong>${fmt(r.climate_impact_score)}/100</strong> (${r.climate_label}).`}
+function destroy(id){if(charts[id])charts[id].destroy()}
+function line(id,labels,datasets,ytitle){destroy(id);charts[id]=new Chart(document.getElementById(id),{type:"line",data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{labels:{color:"#334155"}}},scales:{x:{ticks:{color:"#475569"}},y:{title:{display:true,text:ytitle,color:"#475569"},ticks:{color:"#475569"}}}}})}
+function scatter(id,data,label,xt,yt,color){destroy(id);charts[id]=new Chart(document.getElementById(id),{type:"scatter",data:{datasets:[{label,data,backgroundColor:color,borderColor:color}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:xt}},y:{title:{display:true,text:yt}}}}})}
+function bar(id,labels,data,label,yt,cs){destroy(id);charts[id]=new Chart(document.getElementById(id),{type:"bar",data:{labels,datasets:[{label,data,backgroundColor:cs}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:yt}}}}})}
+function datasets(crops,m){const y=years();return crops.map(c=>({label:cropLabels[c]||c,data:y.map(yr=>{const r=agriData.find(x=>x.year===yr&&x.crop===c);return r?Number(r[m]):null}),borderColor:colors[c]||"#2563eb",backgroundColor:colors[c]||"#2563eb",tension:.2}))}
+function updateAnimatedBar(year){const m=document.getElementById("animMetric").value,rows=agriData.filter(r=>r.year===year).sort((a,b)=>b[m]-a[m]);document.getElementById("animYear").textContent=year;bar("animatedBarChart",rows.map(r=>cropLabels[r.crop]||r.crop),rows.map(r=>r[m]),"Éves rangsor",{production_t:"tonna",area_kha:"ezer ha",yield_kg_ha:"kg/ha",supported_population:"fő",climate_impact_score:"pont"}[m],rows.map(r=>colors[r.crop]||"#2563eb"))}
+function play(){stop();const y=years();animIndex=0;updateAnimatedBar(y[animIndex]);animTimer=setInterval(()=>{animIndex=(animIndex+1)%y.length;updateAnimatedBar(y[animIndex])},Number(document.getElementById("speedSelect").value))}
+function stop(){if(animTimer){clearInterval(animTimer);animTimer=null}}
+function updateCharts(){const crops=selectedCrops(),y=years(),c=document.getElementById("cropSelect").value,rows=cropRows(c);line("areaTrendChart",y,datasets(crops,"area_kha"),"ezer ha");line("yieldTrendChart",y,datasets(crops,"yield_kg_ha"),"kg/ha");line("productionTrendChart",y,datasets(crops,"production_t"),"tonna");line("precipTrendChart",y,[{label:"Éves csapadék",data:y.map(yr=>agriData.find(r=>r.year===yr&&r.crop==="wheat")?.precip_mm),borderColor:"#2563eb",backgroundColor:"#2563eb",tension:.2}],"mm");scatter("precipYieldScatter",rows.map(r=>({x:r.precip_mm,y:r.yield_t_ha})),"Csapadék–hozam","csapadék (mm)","hozam (t/ha)","#2563eb");line("yieldLossChart",rows.map(r=>r.year),[{label:"Hozamveszteség/többlet (%)",data:rows.map(r=>r.yield_loss_pct),borderColor:"#dc2626"},{label:"Csapadékhiány/többlet (%)",data:rows.map(r=>r.precip_deficit_pct),borderColor:"#2563eb"}],"%");scatter("precipSelfChart",rows.map(r=>({x:r.precip_mm,y:r.self_sufficiency_ratio*100})),"Csapadék–önellátás","csapadék (mm)","önellátás (%)","#7c3aed");line("climateImpactChart",rows.map(r=>r.year),[{label:"Climate Impact Score",data:rows.map(r=>r.climate_impact_score),borderColor:"#2f855a",backgroundColor:"#2f855a",tension:.2}],"pont");line("waterNeedChart",rows.map(r=>r.year),[{label:"Tényleges csapadék",data:rows.map(r=>r.precip_mm),borderColor:"#2563eb"},{label:"Szükséges csapadék",data:rows.map(r=>r.water_need_mid_mm),borderColor:"#f59e0b"},{label:"Vízmérleg",data:rows.map(r=>r.water_balance_mm),borderColor:"#16a34a"}],"mm");updateAnimatedBar(Number(document.getElementById("yearRange").value))}
+function updateAll(){updateMetrics();updateCharts()}
+async function init(){try{agriData=await loadData();derive();fillSelectors()}catch(e){document.getElementById("dataStatus").textContent="Adatbetöltési hiba";err(e.message);return}document.getElementById("yearRange").addEventListener("input",updateAll);document.getElementById("cropSelect").addEventListener("change",updateAll);document.getElementById("multiCropSelect").addEventListener("change",updateCharts);document.getElementById("playBtn").addEventListener("click",play);document.getElementById("stopBtn").addEventListener("click",stop);document.getElementById("animMetric").addEventListener("change",()=>updateAnimatedBar(Number(document.getElementById("yearRange").value)));updateAll()}
 init();
 </script>
 </body>
