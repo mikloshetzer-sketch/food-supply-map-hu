@@ -6,11 +6,7 @@
 
   <title>Magyar Agrár-, Klíma- és Élelmiszerbiztonsági Monitor</title>
 
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -23,14 +19,10 @@
       --text: #e5e7eb;
       --muted: #9ca3af;
       --accent: #22c55e;
-      --warning: #facc15;
-      --danger: #ef4444;
       --border: rgba(255,255,255,0.12);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -57,12 +49,27 @@
       font-size: 14px;
     }
 
+    nav {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      color: #dcfce7;
+      text-decoration: none;
+      border: 1px solid rgba(220,252,231,0.35);
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 13px;
+    }
+
     .layout {
       display: grid;
       grid-template-columns: 320px 1fr 360px;
       gap: 14px;
       padding: 14px;
-      min-height: calc(100vh - 86px);
     }
 
     .panel {
@@ -153,41 +160,26 @@
       font-size: 13px;
     }
 
-    .risk.low {
-      background: rgba(34,197,94,0.18);
-      color: #86efac;
-    }
+    .risk.low { background: rgba(34,197,94,0.18); color: #86efac; }
+    .risk.medium { background: rgba(250,204,21,0.18); color: #fde68a; }
+    .risk.high { background: rgba(249,115,22,0.18); color: #fdba74; }
+    .risk.critical { background: rgba(239,68,68,0.18); color: #fca5a5; }
+    .risk.unknown { background: rgba(156,163,175,0.18); color: #d1d5db; }
 
-    .risk.medium {
-      background: rgba(250,204,21,0.18);
-      color: #fde68a;
-    }
-
-    .risk.high {
-      background: rgba(249,115,22,0.18);
-      color: #fdba74;
-    }
-
-    .risk.critical {
-      background: rgba(239,68,68,0.18);
-      color: #fca5a5;
-    }
-
-    .risk.unknown {
-      background: rgba(156,163,175,0.18);
-      color: #d1d5db;
-    }
-
-    .bottom {
-      grid-column: 1 / 4;
+    .charts {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 14px;
+      padding: 0 14px 14px 14px;
+    }
+
+    .chart-panel {
+      min-height: 360px;
     }
 
     canvas {
       width: 100% !important;
-      height: 280px !important;
+      height: 300px !important;
     }
 
     .note {
@@ -197,20 +189,14 @@
       margin-top: 12px;
     }
 
-    .link-row {
-      margin-top: 12px;
-      font-size: 13px;
-    }
-
-    .link-row a {
-      color: #86efac;
-      text-decoration: none;
-    }
-
     .status {
       font-size: 13px;
       color: var(--muted);
       margin-top: 10px;
+    }
+
+    .wide {
+      grid-column: 1 / 3;
     }
 
     @media (max-width: 1100px) {
@@ -218,9 +204,12 @@
         grid-template-columns: 1fr;
       }
 
-      .bottom {
-        grid-column: 1;
+      .charts {
         grid-template-columns: 1fr;
+      }
+
+      .wide {
+        grid-column: 1;
       }
 
       #map {
@@ -233,7 +222,12 @@
 <body>
   <header>
     <h1>Magyar Agrár-, Klíma- és Élelmiszerbiztonsági Monitor</h1>
-    <p>Országos agrár- és klímaadatok 1990–2025 között. A régi dashboardtól független, különálló modul.</p>
+    <p>Termőterület, hozam, termésmennyiség, csapadék és növényi vízigény 1990–2025 között.</p>
+    <nav>
+      <a href="index.html">Food Supply Map főoldal</a>
+      <a href="agriculture.html">Agrár-klíma monitor</a>
+      <a href="data/agriculture/master_agri_database.csv">Adatbázis CSV</a>
+    </nav>
   </header>
 
   <main class="layout">
@@ -267,15 +261,24 @@
         <option value="precip_mm">Csapadék</option>
       </select>
 
+      <label for="multiCropSelect">Összehasonlító diagramok növényei</label>
+      <select id="multiCropSelect" multiple size="8">
+        <option value="wheat" selected>Búza</option>
+        <option value="maize" selected>Kukorica</option>
+        <option value="barley" selected>Árpa</option>
+        <option value="rye">Rozs</option>
+        <option value="oats">Zab</option>
+        <option value="sunflower" selected>Napraforgó</option>
+        <option value="rapeseed" selected>Repce</option>
+        <option value="soybean">Szója</option>
+        <option value="potato">Burgonya</option>
+        <option value="sugar_beet">Cukorrépa</option>
+      </select>
+
       <div class="status" id="dataStatus">Adatok betöltése...</div>
 
       <div class="note">
-        A térkép első verzióban országos adatokat jelenít meg Magyarország egészére.
-        Később vármegyei bontással bővíthető, ha a termelési és klímaadatokat megyei szinten is összerendeljük.
-      </div>
-
-      <div class="link-row">
-        <a href="index.html">← Vissza a jelenlegi Food Supply Map főoldalra</a>
+        A Ctrl gombbal több növény is kijelölhető. A térkép első verzióban országos értéket mutat.
       </div>
     </aside>
 
@@ -289,57 +292,53 @@
       <div id="riskBadge" class="risk unknown">ismeretlen</div>
 
       <div class="metric-grid">
-        <div class="metric">
-          <span>Termőterület</span>
-          <strong id="areaValue">–</strong>
-        </div>
-        <div class="metric">
-          <span>Termés</span>
-          <strong id="productionValue">–</strong>
-        </div>
-        <div class="metric">
-          <span>Termésátlag</span>
-          <strong id="yieldValue">–</strong>
-        </div>
-        <div class="metric">
-          <span>Népesség</span>
-          <strong id="populationValue">–</strong>
-        </div>
-        <div class="metric">
-          <span>Önellátási arány</span>
-          <strong id="selfValue">–</strong>
-        </div>
-        <div class="metric">
-          <span>Eltartható népesség</span>
-          <strong id="supportedValue">–</strong>
-        </div>
-        <div class="metric">
-          <span>Csapadék</span>
-          <strong id="precipValue">–</strong>
-        </div>
-        <div class="metric">
-          <span>Vízmérleg</span>
-          <strong id="waterValue">–</strong>
-        </div>
+        <div class="metric"><span>Termőterület</span><strong id="areaValue">–</strong></div>
+        <div class="metric"><span>Termés</span><strong id="productionValue">–</strong></div>
+        <div class="metric"><span>Termésátlag</span><strong id="yieldValue">–</strong></div>
+        <div class="metric"><span>Népesség</span><strong id="populationValue">–</strong></div>
+        <div class="metric"><span>Önellátási arány</span><strong id="selfValue">–</strong></div>
+        <div class="metric"><span>Eltartható népesség</span><strong id="supportedValue">–</strong></div>
+        <div class="metric"><span>Csapadék</span><strong id="precipValue">–</strong></div>
+        <div class="metric"><span>Szükséges csapadék</span><strong id="neededRainValue">–</strong></div>
+        <div class="metric"><span>Vízmérleg</span><strong id="waterValue">–</strong></div>
+        <div class="metric"><span>Napsütés</span><strong id="sunValue">–</strong></div>
       </div>
 
       <div class="note" id="interpretation">
         Válassz évet és növényt az értelmezéshez.
       </div>
     </aside>
-
-    <section class="bottom">
-      <div class="panel">
-        <h2>Termelési trend</h2>
-        <canvas id="productionChart"></canvas>
-      </div>
-
-      <div class="panel">
-        <h2>Klíma és vízmérleg</h2>
-        <canvas id="climateChart"></canvas>
-      </div>
-    </section>
   </main>
+
+  <section class="charts">
+    <div class="panel chart-panel">
+      <h2>1. Termőterületek változása növényenként</h2>
+      <canvas id="areaTrendChart"></canvas>
+    </div>
+
+    <div class="panel chart-panel">
+      <h2>2. Terméshozam változása növényenként</h2>
+      <canvas id="yieldTrendChart"></canvas>
+    </div>
+
+    <div class="panel chart-panel">
+      <h2>3. Termésmennyiség változása növényenként</h2>
+      <canvas id="productionTrendChart"></canvas>
+    </div>
+
+    <div class="panel chart-panel">
+      <h2>4. Csapadék mennyisége évről évre</h2>
+      <canvas id="precipTrendChart"></canvas>
+    </div>
+
+    <div class="panel chart-panel wide">
+      <h2>5. Tényleges csapadék és szükséges csapadék összevetése</h2>
+      <canvas id="waterNeedChart"></canvas>
+      <div class="note">
+        A szükséges csapadék jelenleg éves, középértékes becslés. Később vegetációs időszaki csapadékkal pontosítható.
+      </div>
+    </div>
+  </section>
 
   <script>
     const DATA_URL = "data/agriculture/master_agri_database.csv";
@@ -348,8 +347,8 @@
     let agriData = [];
     let map;
     let countyLayer;
-    let productionChart;
-    let climateChart;
+
+    let charts = {};
 
     const cropLabels = {
       wheat: "Búza",
@@ -379,10 +378,13 @@
       }) + "%";
     }
 
+    function getSelectedCrops() {
+      return Array.from(document.getElementById("multiCropSelect").selectedOptions).map(o => o.value);
+    }
+
     function getSelectedRow() {
       const year = Number(document.getElementById("yearRange").value);
       const crop = document.getElementById("cropSelect").value;
-
       return agriData.find(row => Number(row.year) === year && row.crop === crop);
     }
 
@@ -399,7 +401,6 @@
 
     function mapColor(row) {
       if (!row) return "#64748b";
-
       const metric = document.getElementById("mapMetric").value;
       const value = Number(row[metric]);
 
@@ -478,7 +479,7 @@
         return;
       }
 
-      document.getElementById("dataStatus").textContent = "Adatok betöltve.";
+      document.getElementById("dataStatus").textContent = `Adatok betöltve: ${agriData.length} sor.`;
 
       document.getElementById("areaValue").textContent = fmtNumber(row.area_ha, 0) + " ha";
       document.getElementById("productionValue").textContent = fmtNumber(row.production_t, 0) + " t";
@@ -487,101 +488,146 @@
       document.getElementById("selfValue").textContent = fmtPercent(row.self_sufficiency_ratio);
       document.getElementById("supportedValue").textContent = fmtNumber(row.supported_population, 0) + " fő";
       document.getElementById("precipValue").textContent = fmtNumber(row.precip_mm, 1) + " mm";
+      document.getElementById("neededRainValue").textContent = fmtNumber(row.water_need_mid_mm, 0) + " mm";
       document.getElementById("waterValue").textContent = fmtNumber(row.water_balance_mm, 1) + " mm";
+      document.getElementById("sunValue").textContent = fmtNumber(row.sunshine_hours, 0) + " óra";
 
       const risk = row.risk_level || "unknown";
       const badge = document.getElementById("riskBadge");
       badge.className = "risk " + risk;
       badge.textContent = riskText(risk);
 
-      const selfPercent = fmtPercent(row.self_sufficiency_ratio);
-      const water = fmtNumber(row.water_balance_mm, 1);
-      const supported = fmtNumber(row.supported_population, 0);
-
       document.getElementById("interpretation").innerHTML =
         `<strong>${year} – ${cropName}</strong><br>
-        Az adott évben az önellátási arány becslése <strong>${selfPercent}</strong>.
-        Az elméleti eltartható népesség <strong>${supported} fő</strong>.
-        Az éves csapadékalapú vízmérleg <strong>${water} mm</strong>.
-        Ez első verziós indikátor, amelyet később vegetációs időszaki csapadékkal kell pontosítani.`;
+        Az adott évben a termőterület <strong>${fmtNumber(row.area_ha, 0)} ha</strong>,
+        a termés <strong>${fmtNumber(row.production_t, 0)} tonna</strong>,
+        a hozam <strong>${fmtNumber(row.yield_t_ha, 2)} t/ha</strong>.
+        Az éves csapadék <strong>${fmtNumber(row.precip_mm, 1)} mm</strong>,
+        a becsült vízigény <strong>${fmtNumber(row.water_need_mid_mm, 0)} mm</strong>,
+        így a vízmérleg <strong>${fmtNumber(row.water_balance_mm, 1)} mm</strong>.`;
     }
 
-    function updateCharts() {
-      const crop = document.getElementById("cropSelect").value;
+    function destroyChart(id) {
+      if (charts[id]) {
+        charts[id].destroy();
+        charts[id] = null;
+      }
+    }
+
+    function lineChart(canvasId, labels, datasets, yTitle) {
+      destroyChart(canvasId);
+      charts[canvasId] = new Chart(document.getElementById(canvasId), {
+        type: "line",
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { labels: { color: "#e5e7eb" } }
+          },
+          scales: {
+            x: { ticks: { color: "#cbd5e1" }, grid: { color: "rgba(255,255,255,0.06)" } },
+            y: {
+              title: { display: true, text: yTitle, color: "#cbd5e1" },
+              ticks: { color: "#cbd5e1" },
+              grid: { color: "rgba(255,255,255,0.08)" }
+            }
+          }
+        }
+      });
+    }
+
+    function getYears() {
+      return [...new Set(agriData.map(r => Number(r.year)))].sort((a, b) => a - b);
+    }
+
+    function buildCropDatasets(crops, metric) {
+      const years = getYears();
+      return crops.map(crop => ({
+        label: cropLabels[crop] || crop,
+        data: years.map(year => {
+          const row = agriData.find(r => Number(r.year) === year && r.crop === crop);
+          return row ? Number(row[metric]) : null;
+        },
+        tension: 0.2
+      }));
+    }
+
+    function updateAllCharts() {
+      const crops = getSelectedCrops();
+      const years = getYears();
+
+      lineChart(
+        "areaTrendChart",
+        years,
+        buildCropDatasets(crops, "area_kha"),
+        "ezer hektár"
+      );
+
+      lineChart(
+        "yieldTrendChart",
+        years,
+        buildCropDatasets(crops, "yield_kg_ha"),
+        "kg/ha"
+      );
+
+      lineChart(
+        "productionTrendChart",
+        years,
+        buildCropDatasets(crops, "production_t"),
+        "tonna"
+      );
+
+      const precipByYear = years.map(year => {
+        const row = agriData.find(r => Number(r.year) === year && r.crop === "wheat");
+        return row ? Number(row.precip_mm) : null;
+      });
+
+      lineChart(
+        "precipTrendChart",
+        years,
+        [{
+          label: "Éves csapadék országos átlag (mm)",
+          data: precipByYear,
+          tension: 0.2
+        }],
+        "mm"
+      );
+
+      const selectedCrop = document.getElementById("cropSelect").value;
       const rows = agriData
-        .filter(r => r.crop === crop)
+        .filter(r => r.crop === selectedCrop)
         .sort((a, b) => Number(a.year) - Number(b.year));
 
-      const years = rows.map(r => r.year);
-      const production = rows.map(r => Number(r.production_t));
-      const yieldData = rows.map(r => Number(r.yield_t_ha));
-      const precip = rows.map(r => Number(r.precip_mm));
-      const water = rows.map(r => Number(r.water_balance_mm));
-
-      if (productionChart) productionChart.destroy();
-      if (climateChart) climateChart.destroy();
-
-      productionChart = new Chart(document.getElementById("productionChart"), {
-        type: "line",
-        data: {
-          labels: years,
-          datasets: [
-            {
-              label: "Termésmennyiség (t)",
-              data: production,
-              yAxisID: "y"
-            },
-            {
-              label: "Termésátlag (t/ha)",
-              data: yieldData,
-              yAxisID: "y1"
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: "index", intersect: false },
-          scales: {
-            y: { position: "left" },
-            y1: { position: "right", grid: { drawOnChartArea: false } }
+      lineChart(
+        "waterNeedChart",
+        rows.map(r => r.year),
+        [
+          {
+            label: "Tényleges csapadék (mm)",
+            data: rows.map(r => Number(r.precip_mm)),
+            tension: 0.2
           },
-          plugins: {
-            legend: { labels: { color: "#e5e7eb" } }
+          {
+            label: "Szükséges csapadék / vízigény becslés (mm)",
+            data: rows.map(r => Number(r.water_need_mid_mm)),
+            tension: 0.2
+          },
+          {
+            label: "Vízmérleg (mm)",
+            data: rows.map(r => Number(r.water_balance_mm)),
+            tension: 0.2
           }
-        }
-      });
-
-      climateChart = new Chart(document.getElementById("climateChart"), {
-        type: "line",
-        data: {
-          labels: years,
-          datasets: [
-            {
-              label: "Csapadék (mm)",
-              data: precip
-            },
-            {
-              label: "Vízmérleg (mm)",
-              data: water
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: "index", intersect: false },
-          plugins: {
-            legend: { labels: { color: "#e5e7eb" } }
-          }
-        }
-      });
+        ],
+        "mm"
+      );
     }
 
     function updateAll() {
       updateMetrics();
       updateMap();
-      updateCharts();
+      updateAllCharts();
     }
 
     async function initMap() {
@@ -645,6 +691,7 @@
       document.getElementById("yearRange").addEventListener("input", updateAll);
       document.getElementById("cropSelect").addEventListener("change", updateAll);
       document.getElementById("mapMetric").addEventListener("change", updateAll);
+      document.getElementById("multiCropSelect").addEventListener("change", updateAllCharts);
 
       updateAll();
     }
