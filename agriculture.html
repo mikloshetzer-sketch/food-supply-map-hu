@@ -631,15 +631,23 @@
     }
 
     async function initMap() {
-      map = L.map("map").setView([47.1, 19.4], 7);
-
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 18,
-        attribution: "&copy; OpenStreetMap"
-      }).addTo(map);
-
       try {
+        if (typeof L === "undefined") {
+          throw new Error("Leaflet könyvtár nem töltődött be.");
+        }
+
+        map = L.map("map").setView([47.1, 19.4], 7);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 18,
+          attribution: "&copy; OpenStreetMap"
+        }).addTo(map);
+
         const geoRes = await fetch(GEO_URL);
+        if (!geoRes.ok) {
+          throw new Error("GeoJSON nem található: " + GEO_URL);
+        }
+
         const geoJson = await geoRes.json();
 
         countyLayer = L.geoJSON(geoJson, {
@@ -653,20 +661,49 @@
 
         map.fitBounds(countyLayer.getBounds());
       } catch (err) {
-        console.error("GeoJSON betöltési hiba:", err);
-        document.getElementById("dataStatus").textContent =
-          "A térkép GeoJSON nem tölthető be, de az adatok működhetnek.";
+        console.error("Térkép betöltési hiba:", err);
+        const mapBox = document.getElementById("map");
+        if (mapBox) {
+          mapBox.innerHTML =
+            "<div style='padding:20px;color:#cbd5e1'>A térkép nem töltődött be, de az adatpanelek és diagramok ettől még működnek.<br><br>Hiba: " +
+            err.message +
+            "</div>";
+        }
       }
     }
 
     async function loadData() {
       return new Promise((resolve, reject) => {
+        if (typeof Papa === "undefined") {
+          reject(new Error("PapaParse könyvtár nem töltődött be."));
+          return;
+        }
+
         Papa.parse(DATA_URL, {
           download: true,
           header: true,
           dynamicTyping: true,
+          skipEmptyLines: true,
           complete: results => {
-            agriData = results.data.filter(row => row.year && row.crop);
+            if (results.errors && results.errors.length > 0) {
+              console.warn("CSV parse figyelmeztetések:", results.errors);
+            }
+
+            agriData = results.data.filter(row => {
+              const yearValue = row.year || row["year"] || row["﻿year"];
+              return yearValue && row.crop;
+            }).map(row => {
+              if (!row.year && row["﻿year"]) {
+                row.year = row["﻿year"];
+              }
+              return row;
+            });
+
+            if (!agriData.length) {
+              reject(new Error("A CSV betöltődött, de nem találtam year/crop adatokat."));
+              return;
+            }
+
             resolve();
           },
           error: err => reject(err)
@@ -675,8 +712,6 @@
     }
 
     async function init() {
-      await initMap();
-
       try {
         await loadData();
         document.getElementById("dataStatus").textContent =
@@ -684,7 +719,7 @@
       } catch (err) {
         console.error("CSV betöltési hiba:", err);
         document.getElementById("dataStatus").textContent =
-          "Nem sikerült betölteni a master_agri_database.csv fájlt.";
+          "Nem sikerült betölteni a master_agri_database.csv fájlt. " + err.message;
         return;
       }
 
@@ -694,9 +729,13 @@
       document.getElementById("multiCropSelect").addEventListener("change", updateAllCharts);
 
       updateAll();
+
+      await initMap();
+      updateMap();
     }
 
     init();
   </script>
 </body>
 </html>
+
