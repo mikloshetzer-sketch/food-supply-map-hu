@@ -7,7 +7,6 @@
   <title>Magyar Agrár-, Klíma- és Élelmiszerbiztonsági Monitor</title>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <style>
     :root {
@@ -91,9 +90,7 @@
       font-size: 13px;
     }
 
-    select, input[type="range"] {
-      width: 100%;
-    }
+    select, input[type="range"] { width: 100%; }
 
     select {
       padding: 9px;
@@ -159,9 +156,7 @@
       padding: 0 14px 14px 14px;
     }
 
-    .chart-panel {
-      min-height: 380px;
-    }
+    .chart-panel { min-height: 380px; }
 
     canvas {
       width: 100% !important;
@@ -181,29 +176,29 @@
       margin-top: 10px;
     }
 
-    .wide {
-      grid-column: 1 / 3;
-    }
-
     .summary-text {
       line-height: 1.55;
       color: #d1d5db;
       margin-top: 12px;
     }
 
+    .wide { grid-column: 1 / 3; }
+
+    .error {
+      color: #fca5a5;
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.25);
+      padding: 10px;
+      border-radius: 10px;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
     @media (max-width: 1200px) {
-      .top-layout {
-        grid-template-columns: 1fr;
-      }
-      .metric-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .charts {
-        grid-template-columns: 1fr;
-      }
-      .wide {
-        grid-column: 1;
-      }
+      .top-layout { grid-template-columns: 1fr; }
+      .metric-grid { grid-template-columns: repeat(2, 1fr); }
+      .charts { grid-template-columns: 1fr; }
+      .wide { grid-column: 1; }
     }
   </style>
 </head>
@@ -228,37 +223,16 @@
       <div class="year-value" id="yearValue">2025</div>
 
       <label for="cropSelect">Kiemelt növény</label>
-      <select id="cropSelect">
-        <option value="wheat">Búza</option>
-        <option value="maize">Kukorica</option>
-        <option value="barley">Árpa</option>
-        <option value="rye">Rozs</option>
-        <option value="oats">Zab</option>
-        <option value="sunflower">Napraforgó</option>
-        <option value="rapeseed">Repce</option>
-        <option value="soybean">Szója</option>
-        <option value="potato">Burgonya</option>
-        <option value="sugar_beet">Cukorrépa</option>
-      </select>
+      <select id="cropSelect"></select>
 
       <label for="multiCropSelect">Összehasonlító diagramok növényei</label>
-      <select id="multiCropSelect" multiple size="8">
-        <option value="wheat" selected>Búza</option>
-        <option value="maize" selected>Kukorica</option>
-        <option value="barley" selected>Árpa</option>
-        <option value="rye">Rozs</option>
-        <option value="oats">Zab</option>
-        <option value="sunflower" selected>Napraforgó</option>
-        <option value="rapeseed" selected>Repce</option>
-        <option value="soybean">Szója</option>
-        <option value="potato">Burgonya</option>
-        <option value="sugar_beet">Cukorrépa</option>
-      </select>
+      <select id="multiCropSelect" multiple size="8"></select>
 
       <div class="status" id="dataStatus">Adatok betöltése...</div>
+      <div id="errorBox"></div>
 
       <div class="note">
-        A Ctrl gombbal több növény is kijelölhető. Ez a verzió térkép nélkül működik, csak az országos idősoros kimutatásokra koncentrál.
+        Ez a verzió térkép nélkül működik, és közvetlenül a master CSV-t olvassa be.
       </div>
     </aside>
 
@@ -334,6 +308,90 @@
       sugar_beet: "Cukorrépa"
     };
 
+    const defaultCrops = ["wheat", "maize", "barley", "sunflower", "rapeseed"];
+
+    function showError(message) {
+      document.getElementById("errorBox").innerHTML = `<div class="error">${message}</div>`;
+    }
+
+    function parseCSVLine(line) {
+      const result = [];
+      let current = "";
+      let insideQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const next = line[i + 1];
+
+        if (char === '"' && insideQuotes && next === '"') {
+          current += '"';
+          i++;
+        } else if (char === '"') {
+          insideQuotes = !insideQuotes;
+        } else if (char === "," && !insideQuotes) {
+          result.push(current);
+          current = "";
+        } else {
+          current += char;
+        }
+      }
+
+      result.push(current);
+      return result;
+    }
+
+    function parseCSV(text) {
+      const lines = text
+        .replace(/^\uFEFF/, "")
+        .split(/\r?\n/)
+        .filter(line => line.trim().length > 0);
+
+      if (lines.length < 2) {
+        throw new Error("A CSV üres vagy csak fejlécet tartalmaz.");
+      }
+
+      const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/^\uFEFF/, ""));
+      const rows = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        const row = {};
+
+        headers.forEach((header, index) => {
+          const raw = values[index] ?? "";
+          const value = raw.trim();
+
+          if (["crop", "crop_hu", "risk_level"].includes(header)) {
+            row[header] = value;
+          } else {
+            const num = Number(value);
+            row[header] = value === "" || Number.isNaN(num) ? null : num;
+          }
+        });
+
+        if (row.year && row.crop) rows.push(row);
+      }
+
+      return rows;
+    }
+
+    async function loadData() {
+      const response = await fetch(DATA_URL, { cache: "no-store" });
+
+      if (!response.ok) {
+        throw new Error(`Nem találom a CSV-t: ${DATA_URL}. HTTP státusz: ${response.status}`);
+      }
+
+      const text = await response.text();
+      const rows = parseCSV(text);
+
+      if (!rows.length) {
+        throw new Error("A CSV betöltődött, de nincs értelmezhető adat.");
+      }
+
+      return rows;
+    }
+
     function fmtNumber(value, decimals = 0) {
       if (value === null || value === undefined || isNaN(value)) return "–";
       return Number(value).toLocaleString("hu-HU", {
@@ -347,6 +405,47 @@
       return (Number(value) * 100).toLocaleString("hu-HU", {
         maximumFractionDigits: 0
       }) + "%";
+    }
+
+    function getYears() {
+      return [...new Set(agriData.map(r => Number(r.year)))].sort((a, b) => a - b);
+    }
+
+    function getAvailableCrops() {
+      return [...new Set(agriData.map(r => r.crop))].filter(Boolean);
+    }
+
+    function fillSelectors() {
+      const crops = getAvailableCrops();
+
+      const cropSelect = document.getElementById("cropSelect");
+      const multi = document.getElementById("multiCropSelect");
+
+      cropSelect.innerHTML = "";
+      multi.innerHTML = "";
+
+      crops.forEach(crop => {
+        const label = cropLabels[crop] || crop;
+
+        const opt = document.createElement("option");
+        opt.value = crop;
+        opt.textContent = label;
+        if (crop === "wheat") opt.selected = true;
+        cropSelect.appendChild(opt);
+
+        const opt2 = document.createElement("option");
+        opt2.value = crop;
+        opt2.textContent = label;
+        if (defaultCrops.includes(crop)) opt2.selected = true;
+        multi.appendChild(opt2);
+      });
+
+      const years = getYears();
+      const yearRange = document.getElementById("yearRange");
+      yearRange.min = Math.min(...years);
+      yearRange.max = Math.max(...years);
+      yearRange.value = Math.max(...years);
+      document.getElementById("yearValue").textContent = yearRange.value;
     }
 
     function getSelectedCrops() {
@@ -419,7 +518,13 @@
     }
 
     function lineChart(canvasId, labels, datasets, yTitle) {
+      if (typeof Chart === "undefined") {
+        showError("A Chart.js könyvtár nem töltődött be, ezért a diagramok nem jelennek meg.");
+        return;
+      }
+
       destroyChart(canvasId);
+
       charts[canvasId] = new Chart(document.getElementById(canvasId), {
         type: "line",
         data: { labels, datasets },
@@ -442,18 +547,15 @@
       });
     }
 
-    function getYears() {
-      return [...new Set(agriData.map(r => Number(r.year)))].sort((a, b) => a - b);
-    }
-
     function buildCropDatasets(crops, metric) {
       const years = getYears();
+
       return crops.map(crop => ({
         label: cropLabels[crop] || crop,
         data: years.map(year => {
           const row = agriData.find(r => Number(r.year) === year && r.crop === crop);
           return row ? Number(row[metric]) : null;
-        },
+        }),
         tension: 0.2
       }));
     }
@@ -500,45 +602,14 @@
       updateAllCharts();
     }
 
-    async function loadData() {
-      return new Promise((resolve, reject) => {
-        if (typeof Papa === "undefined") {
-          reject(new Error("PapaParse nem töltődött be."));
-          return;
-        }
-
-        Papa.parse(DATA_URL, {
-          download: true,
-          header: true,
-          dynamicTyping: true,
-          skipEmptyLines: true,
-          complete: results => {
-            agriData = results.data
-              .map(row => {
-                if (!row.year && row["﻿year"]) row.year = row["﻿year"];
-                return row;
-              })
-              .filter(row => row.year && row.crop);
-
-            if (!agriData.length) {
-              reject(new Error("A CSV betöltődött, de nincs year/crop adat."));
-              return;
-            }
-
-            resolve();
-          },
-          error: err => reject(err)
-        });
-      });
-    }
-
     async function init() {
       try {
-        await loadData();
+        agriData = await loadData();
+        fillSelectors();
       } catch (err) {
-        console.error("CSV betöltési hiba:", err);
-        document.getElementById("dataStatus").textContent =
-          "Nem sikerült betölteni az adatbázist: " + err.message;
+        console.error(err);
+        document.getElementById("dataStatus").textContent = "Adatbetöltési hiba.";
+        showError(err.message);
         return;
       }
 
@@ -553,4 +624,3 @@
   </script>
 </body>
 </html>
-
