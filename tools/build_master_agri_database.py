@@ -20,6 +20,21 @@ FILES = {
 OUT_MASTER = AGRI_DIR / "master_agri_database.csv"
 OUT_CLIMATE = AGRI_DIR / "climate_station_yearly.csv"
 
+# Csak ezek lehetnek valódi meteorológiai mérőállomások.
+VALID_STATIONS = {
+    "Budapest",
+    "Debrecen",
+    "Győr",
+    "Kecskemét",
+    "Kékestető",
+    "Miskolc",
+    "Napkor",
+    "Pogány",
+    "Siófok",
+    "Szeged",
+    "Szombathely",
+}
+
 CROP_NAME_MAP = {
     "Búza": "wheat",
     "Kukorica": "maize",
@@ -100,17 +115,41 @@ def load_population(path):
 
 def load_climate(path):
     raw = pd.read_excel(path, sheet_name=0, header=None)
-    years = [int(y) for y in raw.iloc[0, 1:].tolist() if pd.notna(y) and str(y).replace(".0","").isdigit()]
-    year_cols = list(range(1, 1 + len(years)))
 
-    metric = None
+    years = []
+    year_cols = []
+    for idx in range(1, raw.shape[1]):
+        value = raw.iloc[0, idx]
+        try:
+            year = int(float(value))
+            if 1985 <= year <= 2025:
+                years.append(year)
+                year_cols.append(idx)
+        except Exception:
+            pass
+
     records = []
+    current_metric = None
 
     metric_map = {
         "Átlagos középhőmérséklet": "avg_temp_c",
+        "Középhőmérséklet": "avg_temp_c",
         "Csapadékösszeg": "precip_mm",
+        "Csapadék": "precip_mm",
         "Napfénytartam": "sunshine_hours",
         "Napsütés": "sunshine_hours",
+    }
+
+    # Ezek mutatóblokkok vagy technikai sorok, nem mérőállomások.
+    BLOCK_OR_META_LABELS = {
+        "Maximum hőmérséklet, °C",
+        "Minimum hőmérséklet, °C",
+        "Csapadékos napok száma",
+        "Szeles napok száma",
+        "Fagyos napok száma",
+        "Nyári napok száma",
+        "Hőségnapok száma",
+        "Zord napok száma",
     }
 
     for _, row in raw.iloc[1:].iterrows():
@@ -120,6 +159,7 @@ def load_climate(path):
 
         label = str(first).strip()
 
+        # Mutatóblokk felismerése
         matched_metric = None
         for key, val in metric_map.items():
             if key.lower() in label.lower():
@@ -127,21 +167,25 @@ def load_climate(path):
                 break
 
         if matched_metric:
-            metric = matched_metric
+            current_metric = matched_metric
             continue
 
-        if metric is None:
+        # Nem mérőállomás-sorok kizárása
+        if label in BLOCK_OR_META_LABELS:
             continue
 
-        station = label
-        values = row.iloc[year_cols].tolist()
+        if label not in VALID_STATIONS:
+            continue
 
-        for year, value in zip(years, values):
-            if 1990 <= int(year) <= 2025:
+        if current_metric is None:
+            continue
+
+        for year, col_idx in zip(years, year_cols):
+            if 1990 <= year <= 2025:
                 records.append({
-                    "year": int(year),
-                    "station": station,
-                    metric: clean_number(value)
+                    "year": year,
+                    "station": label,
+                    current_metric: clean_number(row.iloc[col_idx])
                 })
 
     if not records:
@@ -149,11 +193,15 @@ def load_climate(path):
 
     climate_long = pd.DataFrame(records)
 
-    # mérőállomás-éves tábla
+    # Azonos év/állomás több mutatója egy sorba.
     station_df = climate_long.groupby(["year", "station"], as_index=False).first()
+
+    # Csak valódi állomások maradhatnak.
+    station_df = station_df[station_df["station"].isin(VALID_STATIONS)]
+
     station_df.to_csv(OUT_CLIMATE, index=False, encoding="utf-8-sig")
 
-    # országos átlag: mérőállomások egyszerű átlaga
+    # Országos átlag: mérőállomások egyszerű átlaga.
     national = station_df.groupby("year", as_index=False).agg({
         "avg_temp_c": "mean",
         "precip_mm": "mean",
