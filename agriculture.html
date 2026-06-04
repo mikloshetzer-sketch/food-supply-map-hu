@@ -6,8 +6,6 @@
 
   <title>Magyar Agrár-, Klíma- és Élelmiszerbiztonsági Monitor</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
@@ -65,9 +63,9 @@
       font-size: 13px;
     }
 
-    .layout {
+    .top-layout {
       display: grid;
-      grid-template-columns: 320px 1fr 360px;
+      grid-template-columns: 320px 1fr;
       gap: 14px;
       padding: 14px;
     }
@@ -112,22 +110,9 @@
       color: var(--accent);
     }
 
-    #map {
-      height: 520px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      overflow: hidden;
-      background: #1f2937;
-    }
-
-    .map-card {
-      padding: 0;
-      overflow: hidden;
-    }
-
     .metric-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
       gap: 10px;
       margin-top: 12px;
     }
@@ -137,6 +122,7 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 10px;
+      min-height: 78px;
     }
 
     .metric span {
@@ -174,12 +160,12 @@
     }
 
     .chart-panel {
-      min-height: 360px;
+      min-height: 380px;
     }
 
     canvas {
       width: 100% !important;
-      height: 300px !important;
+      height: 310px !important;
     }
 
     .note {
@@ -199,21 +185,24 @@
       grid-column: 1 / 3;
     }
 
-    @media (max-width: 1100px) {
-      .layout {
+    .summary-text {
+      line-height: 1.55;
+      color: #d1d5db;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 1200px) {
+      .top-layout {
         grid-template-columns: 1fr;
       }
-
+      .metric-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
       .charts {
         grid-template-columns: 1fr;
       }
-
       .wide {
         grid-column: 1;
-      }
-
-      #map {
-        height: 420px;
       }
     }
   </style>
@@ -230,7 +219,7 @@
     </nav>
   </header>
 
-  <main class="layout">
+  <main class="top-layout">
     <aside class="panel">
       <h2>Vezérlés</h2>
 
@@ -238,7 +227,7 @@
       <input type="range" id="yearRange" min="1990" max="2025" value="2025" />
       <div class="year-value" id="yearValue">2025</div>
 
-      <label for="cropSelect">Növény</label>
+      <label for="cropSelect">Kiemelt növény</label>
       <select id="cropSelect">
         <option value="wheat">Búza</option>
         <option value="maize">Kukorica</option>
@@ -250,15 +239,6 @@
         <option value="soybean">Szója</option>
         <option value="potato">Burgonya</option>
         <option value="sugar_beet">Cukorrépa</option>
-      </select>
-
-      <label for="mapMetric">Térképi mutató</label>
-      <select id="mapMetric">
-        <option value="self_sufficiency_ratio">Önellátási arány</option>
-        <option value="water_balance_mm">Vízmérleg</option>
-        <option value="yield_t_ha">Termésátlag</option>
-        <option value="production_t">Termésmennyiség</option>
-        <option value="precip_mm">Csapadék</option>
       </select>
 
       <label for="multiCropSelect">Összehasonlító diagramok növényei</label>
@@ -278,15 +258,11 @@
       <div class="status" id="dataStatus">Adatok betöltése...</div>
 
       <div class="note">
-        A Ctrl gombbal több növény is kijelölhető. A térkép első verzióban országos értéket mutat.
+        A Ctrl gombbal több növény is kijelölhető. Ez a verzió térkép nélkül működik, csak az országos idősoros kimutatásokra koncentrál.
       </div>
     </aside>
 
-    <section class="panel map-card">
-      <div id="map"></div>
-    </section>
-
-    <aside class="panel">
+    <section class="panel">
       <h2>Éves összkép</h2>
 
       <div id="riskBadge" class="risk unknown">ismeretlen</div>
@@ -304,10 +280,10 @@
         <div class="metric"><span>Napsütés</span><strong id="sunValue">–</strong></div>
       </div>
 
-      <div class="note" id="interpretation">
+      <div class="summary-text" id="interpretation">
         Válassz évet és növényt az értelmezéshez.
       </div>
-    </aside>
+    </section>
   </main>
 
   <section class="charts">
@@ -335,19 +311,14 @@
       <h2>5. Tényleges csapadék és szükséges csapadék összevetése</h2>
       <canvas id="waterNeedChart"></canvas>
       <div class="note">
-        A szükséges csapadék jelenleg éves, középértékes becslés. Később vegetációs időszaki csapadékkal pontosítható.
+        A szükséges csapadék jelenleg éves középértékes becslés. Később vegetációs időszaki csapadékkal pontosítható.
       </div>
     </div>
   </section>
 
   <script>
     const DATA_URL = "data/agriculture/master_agri_database.csv";
-    const GEO_URL = "data/hu-counties.geojson";
-
     let agriData = [];
-    let map;
-    let countyLayer;
-
     let charts = {};
 
     const cropLabels = {
@@ -399,73 +370,6 @@
       return map[risk] || "ismeretlen";
     }
 
-    function mapColor(row) {
-      if (!row) return "#64748b";
-      const metric = document.getElementById("mapMetric").value;
-      const value = Number(row[metric]);
-
-      if (metric === "self_sufficiency_ratio") {
-        if (value >= 3) return "#15803d";
-        if (value >= 1.5) return "#65a30d";
-        if (value >= 1) return "#facc15";
-        return "#dc2626";
-      }
-
-      if (metric === "water_balance_mm") {
-        if (value >= 100) return "#15803d";
-        if (value >= 0) return "#65a30d";
-        if (value >= -100) return "#facc15";
-        return "#dc2626";
-      }
-
-      if (metric === "yield_t_ha") {
-        if (value >= 7) return "#15803d";
-        if (value >= 5) return "#65a30d";
-        if (value >= 3) return "#facc15";
-        return "#dc2626";
-      }
-
-      if (metric === "production_t") {
-        if (value >= 7000000) return "#15803d";
-        if (value >= 4000000) return "#65a30d";
-        if (value >= 2000000) return "#facc15";
-        return "#dc2626";
-      }
-
-      if (metric === "precip_mm") {
-        if (value >= 700) return "#15803d";
-        if (value >= 550) return "#65a30d";
-        if (value >= 450) return "#facc15";
-        return "#dc2626";
-      }
-
-      return "#64748b";
-    }
-
-    function updateMap() {
-      const row = getSelectedRow();
-      if (!countyLayer || !row) return;
-
-      const fill = mapColor(row);
-      const year = document.getElementById("yearRange").value;
-      const cropName = cropLabels[document.getElementById("cropSelect").value] || "Növény";
-      const metric = document.getElementById("mapMetric").selectedOptions[0].textContent;
-
-      countyLayer.setStyle({
-        fillColor: fill,
-        fillOpacity: 0.62,
-        color: "#e5e7eb",
-        weight: 1
-      });
-
-      countyLayer.eachLayer(layer => {
-        layer.bindTooltip(
-          `<strong>${cropName} – ${year}</strong><br>${metric}<br>Országos adat`,
-          { sticky: true }
-        );
-      });
-    }
-
     function updateMetrics() {
       const row = getSelectedRow();
       const year = document.getElementById("yearRange").value;
@@ -499,12 +403,12 @@
 
       document.getElementById("interpretation").innerHTML =
         `<strong>${year} – ${cropName}</strong><br>
-        Az adott évben a termőterület <strong>${fmtNumber(row.area_ha, 0)} ha</strong>,
-        a termés <strong>${fmtNumber(row.production_t, 0)} tonna</strong>,
-        a hozam <strong>${fmtNumber(row.yield_t_ha, 2)} t/ha</strong>.
+        Termőterület: <strong>${fmtNumber(row.area_ha, 0)} ha</strong>,
+        termés: <strong>${fmtNumber(row.production_t, 0)} tonna</strong>,
+        hozam: <strong>${fmtNumber(row.yield_t_ha, 2)} t/ha</strong>.
         Az éves csapadék <strong>${fmtNumber(row.precip_mm, 1)} mm</strong>,
         a becsült vízigény <strong>${fmtNumber(row.water_need_mid_mm, 0)} mm</strong>,
-        így a vízmérleg <strong>${fmtNumber(row.water_balance_mm, 1)} mm</strong>.`;
+        a vízmérleg pedig <strong>${fmtNumber(row.water_balance_mm, 1)} mm</strong>.`;
     }
 
     function destroyChart(id) {
@@ -558,26 +462,9 @@
       const crops = getSelectedCrops();
       const years = getYears();
 
-      lineChart(
-        "areaTrendChart",
-        years,
-        buildCropDatasets(crops, "area_kha"),
-        "ezer hektár"
-      );
-
-      lineChart(
-        "yieldTrendChart",
-        years,
-        buildCropDatasets(crops, "yield_kg_ha"),
-        "kg/ha"
-      );
-
-      lineChart(
-        "productionTrendChart",
-        years,
-        buildCropDatasets(crops, "production_t"),
-        "tonna"
-      );
+      lineChart("areaTrendChart", years, buildCropDatasets(crops, "area_kha"), "ezer hektár");
+      lineChart("yieldTrendChart", years, buildCropDatasets(crops, "yield_kg_ha"), "kg/ha");
+      lineChart("productionTrendChart", years, buildCropDatasets(crops, "production_t"), "tonna");
 
       const precipByYear = years.map(year => {
         const row = agriData.find(r => Number(r.year) === year && r.crop === "wheat");
@@ -587,11 +474,7 @@
       lineChart(
         "precipTrendChart",
         years,
-        [{
-          label: "Éves csapadék országos átlag (mm)",
-          data: precipByYear,
-          tension: 0.2
-        }],
+        [{ label: "Éves csapadék országos átlag (mm)", data: precipByYear, tension: 0.2 }],
         "mm"
       );
 
@@ -604,21 +487,9 @@
         "waterNeedChart",
         rows.map(r => r.year),
         [
-          {
-            label: "Tényleges csapadék (mm)",
-            data: rows.map(r => Number(r.precip_mm)),
-            tension: 0.2
-          },
-          {
-            label: "Szükséges csapadék / vízigény becslés (mm)",
-            data: rows.map(r => Number(r.water_need_mid_mm)),
-            tension: 0.2
-          },
-          {
-            label: "Vízmérleg (mm)",
-            data: rows.map(r => Number(r.water_balance_mm)),
-            tension: 0.2
-          }
+          { label: "Tényleges csapadék (mm)", data: rows.map(r => Number(r.precip_mm)), tension: 0.2 },
+          { label: "Szükséges csapadék / vízigény becslés (mm)", data: rows.map(r => Number(r.water_need_mid_mm)), tension: 0.2 },
+          { label: "Vízmérleg (mm)", data: rows.map(r => Number(r.water_balance_mm)), tension: 0.2 }
         ],
         "mm"
       );
@@ -626,56 +497,13 @@
 
     function updateAll() {
       updateMetrics();
-      updateMap();
       updateAllCharts();
-    }
-
-    async function initMap() {
-      try {
-        if (typeof L === "undefined") {
-          throw new Error("Leaflet könyvtár nem töltődött be.");
-        }
-
-        map = L.map("map").setView([47.1, 19.4], 7);
-
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          maxZoom: 18,
-          attribution: "&copy; OpenStreetMap"
-        }).addTo(map);
-
-        const geoRes = await fetch(GEO_URL);
-        if (!geoRes.ok) {
-          throw new Error("GeoJSON nem található: " + GEO_URL);
-        }
-
-        const geoJson = await geoRes.json();
-
-        countyLayer = L.geoJSON(geoJson, {
-          style: {
-            color: "#e5e7eb",
-            weight: 1,
-            fillColor: "#64748b",
-            fillOpacity: 0.55
-          }
-        }).addTo(map);
-
-        map.fitBounds(countyLayer.getBounds());
-      } catch (err) {
-        console.error("Térkép betöltési hiba:", err);
-        const mapBox = document.getElementById("map");
-        if (mapBox) {
-          mapBox.innerHTML =
-            "<div style='padding:20px;color:#cbd5e1'>A térkép nem töltődött be, de az adatpanelek és diagramok ettől még működnek.<br><br>Hiba: " +
-            err.message +
-            "</div>";
-        }
-      }
     }
 
     async function loadData() {
       return new Promise((resolve, reject) => {
         if (typeof Papa === "undefined") {
-          reject(new Error("PapaParse könyvtár nem töltődött be."));
+          reject(new Error("PapaParse nem töltődött be."));
           return;
         }
 
@@ -685,22 +513,15 @@
           dynamicTyping: true,
           skipEmptyLines: true,
           complete: results => {
-            if (results.errors && results.errors.length > 0) {
-              console.warn("CSV parse figyelmeztetések:", results.errors);
-            }
-
-            agriData = results.data.filter(row => {
-              const yearValue = row.year || row["year"] || row["﻿year"];
-              return yearValue && row.crop;
-            }).map(row => {
-              if (!row.year && row["﻿year"]) {
-                row.year = row["﻿year"];
-              }
-              return row;
-            });
+            agriData = results.data
+              .map(row => {
+                if (!row.year && row["﻿year"]) row.year = row["﻿year"];
+                return row;
+              })
+              .filter(row => row.year && row.crop);
 
             if (!agriData.length) {
-              reject(new Error("A CSV betöltődött, de nem találtam year/crop adatokat."));
+              reject(new Error("A CSV betöltődött, de nincs year/crop adat."));
               return;
             }
 
@@ -714,24 +535,18 @@
     async function init() {
       try {
         await loadData();
-        document.getElementById("dataStatus").textContent =
-          `Adatok betöltve: ${agriData.length} sor.`;
       } catch (err) {
         console.error("CSV betöltési hiba:", err);
         document.getElementById("dataStatus").textContent =
-          "Nem sikerült betölteni a master_agri_database.csv fájlt. " + err.message;
+          "Nem sikerült betölteni az adatbázist: " + err.message;
         return;
       }
 
       document.getElementById("yearRange").addEventListener("input", updateAll);
       document.getElementById("cropSelect").addEventListener("change", updateAll);
-      document.getElementById("mapMetric").addEventListener("change", updateAll);
       document.getElementById("multiCropSelect").addEventListener("change", updateAllCharts);
 
       updateAll();
-
-      await initMap();
-      updateMap();
     }
 
     init();
