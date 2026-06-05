@@ -111,21 +111,18 @@ button{border:0;border-radius:999px;padding:9px 14px;background:#2f855a;color:wh
 <div class="panel chart-panel"><h2>4. Csapadék évről évre</h2><canvas id="precipTrendChart"></canvas><div class="method-box"><strong>Mit látunk?</strong><br>Az éves csapadék alakulását mutatja.<br><strong>Módszertan:</strong><span class="formula">éves csapadék = mérőállomások éves átlagos csapadéka (mm)</span></div></div>
 <div class="panel chart-panel"><h2>4/b. Átlaghőmérséklet évről évre</h2><canvas id="temperatureTrendChart"></canvas><div class="method-box"><strong>Mit látunk?</strong><br>Az éves átlaghőmérséklet változását mutatja. Ez az éghajlatváltozás egyik legfontosabb háttérmutatója.<br><strong>Módszertan:</strong><span class="formula">átlaghőmérséklet = mérőállomások éves átlagos középhőmérséklete (°C)</span></div></div>
 <div class="panel chart-panel"><h2>4/c. Hőmérséklet-anomália</h2><canvas id="temperatureAnomalyChart"></canvas><div class="method-box"><strong>Mit látunk?</strong><br>Azt mutatja, hogy az adott év mennyivel volt melegebb vagy hűvösebb a referenciaátlagnál.<br><strong>Módszertan:</strong><span class="formula">anomália = aktuális év hőmérséklete − 1990–2000 átlaghőmérséklete</span></div></div>
-<div class="panel chart-panel"><h2>5. Csapadék és hozam kapcsolata</h2><canvas id="precipYieldScatter"></canvas><div class="note" id="scatterYieldNote">Minden pont egy év. Jobbra = több csapadék, feljebb = jobb hozam.</div></div>
-<div class="panel chart-panel"><h2>5/b. Hőmérséklet és hozam kapcsolata</h2><canvas id="tempYieldScatter"></canvas><div class="note" id="scatterTempNote">Minden pont egy év. Jobbra = melegebb év, feljebb = jobb hozam.</div></div>
-<div class="panel chart-panel"><h2>6. Hozamveszteség és csapadékhiány</h2><canvas id="yieldLossChart"></canvas></div>
-<div class="panel chart-panel"><h2>7. Önellátási arány 1990–2025</h2><canvas id="selfSufficiencyChart"></canvas></div>
-<div class="panel chart-panel"><h2>8. Eltartható népesség 1990–2025</h2><canvas id="supportedPopulationChart"></canvas></div>
-<div class="panel chart-panel"><h2>9. Vízmérleg / aszályindex</h2><canvas id="waterBalanceChart"></canvas></div>
-<div class="panel chart-panel"><h2>10. Climate Impact Score</h2><canvas id="climateImpactChart"></canvas></div>
-<div class="panel chart-panel wide"><h2>11. Élelmiszerbiztonsági állapot</h2><canvas id="securityStatusChart"></canvas></div>
-<div class="panel chart-panel"><h2>12. Food Security Index</h2><canvas id="foodSecurityChart"></canvas></div>
+<div class="panel chart-panel"><h2>5. Csapadék és hozam kapcsolata</h2><canvas id="precipYieldScatter"></canvas><div class="note" id="scatterYieldNote">Minden pont egy év. Jobbra = több csapadék, feljebb = jobb hozam.</div><div class="textbox" id="precipYieldInsight">Az adatok betöltése után jelenik meg.</div></div>
+<div class="panel chart-panel"><h2>5/b. Hőmérséklet és hozam kapcsolata</h2><canvas id="tempYieldScatter"></canvas><div class="note" id="scatterTempNote">Minden pont egy év. Jobbra = melegebb év, feljebb = jobb hozam.</div><div class="textbox" id="tempYieldInsight">Az adatok betöltése után jelenik meg.</div></div>
+<div class="panel chart-panel"><h2>6. Hozamveszteség és csapadékhiány</h2><canvas id="yieldLossChart"></canvas><div class="textbox" id="yieldLossInsight">Az adatok betöltése után jelenik meg.</div></div>
+<div class="panel chart-panel"><h2>7. Önellátási arány 1990–2025</h2><canvas id="selfSufficiencyChart"></canvas><div class="textbox" id="selfSufficiencyInsight">Az adatok betöltése után jelenik meg.</div></div>
+<div class="panel chart-panel"><h2>8. Eltartható népesség 1990–2025</h2><canvas id="supportedPopulationChart"></canvas><div class="textbox" id="supportedPopulationInsight">Az adatok betöltése után jelenik meg.</div></div>
+<div class="panel chart-panel"><h2>9. Vízmérleg / aszályindex</h2><canvas id="waterBalanceChart"></canvas><div class="textbox" id="waterBalanceInsight">Az adatok betöltése után jelenik meg.</div></div>
+<div class="panel chart-panel"><h2>10. Climate Impact Score</h2><canvas id="climateImpactChart"></canvas><div class="textbox" id="climateImpactInsight">Az adatok betöltése után jelenik meg.</div></div>
+<div class="panel chart-panel wide"><h2>11. Élelmiszerbiztonsági állapot</h2><canvas id="securityStatusChart"></canvas><div class="textbox" id="securityStatusInsight">Az adatok betöltése után jelenik meg.</div></div>
+<div class="panel chart-panel"><h2>12. Food Security Index</h2><canvas id="foodSecurityChart"></canvas><div class="textbox" id="foodSecurityChartInsight">Az adatok betöltése után jelenik meg.</div></div>
 <div class="panel chart-panel"><h2>13. Klímaadaptációs mutató</h2><canvas id="winnerLoserChart"></canvas><div class="method-box"><strong>Mit látunk?</strong><br>Azt mutatja, mely növények alkalmazkodási pozíciója javult vagy romlott. Már a hozamváltozás és a termőterület-változás is beleszámít.<br><strong>Módszertan:</strong><span class="formula">adaptációs pont = 0,60 × hozamváltozás % + 0,40 × termőterület-változás %</span></div></div>
-<div class="panel chart-panel wide"><h2>14. Tényleges csapadék és szükséges csapadék</h2><canvas id="waterNeedChart"></canvas></div>
-<div class="panel chart-panel wide">
-<h2>15. Automatikus diagram-értelmezések</h2>
-<div class="textbox" id="chartInterpretations">Az adatok betöltése után jelenik meg.</div>
-</div>
+<div class="panel chart-panel wide"><h2>14. Tényleges csapadék és szükséges csapadék</h2><canvas id="waterNeedChart"></canvas><div class="textbox" id="waterNeedInsight">Az adatok betöltése után jelenik meg.</div></div>
+
 </section>
 
 <script>
@@ -205,28 +202,90 @@ function updateFoodSecurityExplain(row){
   const levels=`<table class="data-table"><thead><tr><th>Pontszám</th><th>Értelmezés</th></tr></thead><tbody><tr><td>90–100</td><td>stabil / kiváló</td></tr><tr><td>75–89</td><td>stabil, de figyelendő</td></tr><tr><td>60–74</td><td>sérülékeny</td></tr><tr><td>0–59</td><td>kockázatos</td></tr></tbody></table>`;
   box.innerHTML=`<strong>${row.year}. évi értékelés:</strong> a kiválasztott növény Food Security Index értéke <strong>${fmt(row.food_security_index,0)}/100</strong>, besorolása: <strong>${row.food_security_label}</strong>.<br><br><strong>Mit jelent?</strong> Az index az önellátást, a klímahatást, a hozamstabilitást és a vízmérleget egyesíti. Magasabb érték stabilabb ellátási helyzetet jelez.${levels}<span class="formula">FSI = 0,40×önellátási pont + 0,30×Climate Impact + 0,20×hozamstabilitás + 0,10×vízmérlegpont</span>`;
 }
+function setBox(id,content){const el=document.getElementById(id);if(el)el.innerHTML=content}
 function updateChartInterpretations(row){
-  const box=document.getElementById("chartInterpretations");
-  if(!box||!row)return;
+  if(!row)return;
   const rows=cropRows(row.crop);
   const cropName=cropLabels[row.crop]||row.crop;
+
   const water=minMaxYear(rows,"water_balance_mm");
   const climate=minMaxYear(rows,"climate_impact_score");
   const fsi=minMaxYear(rows,"food_security_index");
   const self=minMaxYear(rows,"self_sufficiency_ratio");
+  const supported=minMaxYear(rows,"supported_population");
   const temp=minMaxYear(rows,"avg_temp_c");
+  const yieldLoss=minMaxYear(rows,"yield_loss_pct");
+
   const precipYield=corr(rows.map(r=>r.precip_mm),rows.map(r=>r.yield_t_ha));
   const tempYield=corr(rows.map(r=>r.avg_temp_c),rows.map(r=>r.yield_t_ha));
+
   const fsiTrend=trendSlope(rows,"food_security_index");
   const waterTrend=trendSlope(rows,"water_balance_mm");
-  box.innerHTML=`
-  <strong>Csapadék–hozam:</strong> ${precipYield===null?"nincs elég adat":`korreláció ${fmt(precipYield,2)}`}. Ez azt jelzi, hogy az éves csapadék önmagában ${Math.abs(precipYield||0)<0.2?"gyengén":"érzékelhetően"} magyarázza a ${cropName} hozamát.<br><br>
-  <strong>Hőmérséklet–hozam:</strong> ${tempYield===null?"nincs elég adat":`korreláció ${fmt(tempYield,2)}`}. A hőmérséklet hatása a vízellátással együtt értelmezhető.<br><br>
-  <strong>Vízmérleg:</strong> legrosszabb év: <strong>${water.min?water.min.year:"–"}</strong> (${water.min?fmt(water.min.water_balance_mm,1):"–"} mm), legjobb év: <strong>${water.max?water.max.year:"–"}</strong> (${water.max?fmt(water.max.water_balance_mm,1):"–"} mm). Trend: ${trendLabel(waterTrend,"mm")}.<br><br>
-  <strong>Climate Impact Score:</strong> legalacsonyabb érték: <strong>${climate.min?climate.min.year:"–"}</strong> (${climate.min?fmt(climate.min.climate_impact_score,0):"–"}/100), legmagasabb érték: <strong>${climate.max?climate.max.year:"–"}</strong> (${climate.max?fmt(climate.max.climate_impact_score,0):"–"}/100).<br><br>
-  <strong>Food Security Index:</strong> leggyengébb év: <strong>${fsi.min?fsi.min.year:"–"}</strong> (${fsi.min?fmt(fsi.min.food_security_index,0):"–"}/100), legerősebb év: <strong>${fsi.max?fsi.max.year:"–"}</strong> (${fsi.max?fmt(fsi.max.food_security_index,0):"–"}/100). Trend: ${trendLabel(fsiTrend,"pont")}.<br><br>
-  <strong>Önellátás:</strong> legalacsonyabb önellátási arány: <strong>${self.min?self.min.year:"–"}</strong> (${self.min?pct(self.min.self_sufficiency_ratio):"–"}), legmagasabb: <strong>${self.max?self.max.year:"–"}</strong> (${self.max?pct(self.max.self_sufficiency_ratio):"–"}).<br><br>
-  <strong>Hőmérséklet:</strong> legmelegebb év: <strong>${temp.max?temp.max.year:"–"}</strong> (${temp.max?fmt(temp.max.avg_temp_c,1):"–"} °C). Az anomália bázisa az 1990–2000 közötti átlag.`;
+  const selfTrend=trendSlope(rows,"self_sufficiency_ratio");
+  const supportedTrend=trendSlope(rows,"supported_population");
+
+  const dryYears=rows.filter(r=>r.water_balance_mm<0).length;
+  const wetYears=rows.filter(r=>r.water_balance_mm>=0).length;
+
+  setBox("precipYieldInsight",
+    `<strong>Értelmezés:</strong> a ${cropName} esetében a csapadék–hozam korreláció <strong>${precipYield===null?"nincs elég adat":fmt(precipYield,2)}</strong>. `+
+    `${Math.abs(precipYield||0)<0.2?"Az éves csapadék önmagában gyengén magyarázza a hozamot, ezért vegetációs időszaki csapadékadatokra lenne szükség.":"A kapcsolat érzékelhető, de a hozamot a hőmérséklet, technológia és talajállapot is befolyásolja."}`
+  );
+
+  setBox("tempYieldInsight",
+    `<strong>Értelmezés:</strong> a hőmérséklet–hozam korreláció <strong>${tempYield===null?"nincs elég adat":fmt(tempYield,2)}</strong>. `+
+    `${tempYield!==null&&tempYield< -0.2?"A negatív kapcsolat arra utalhat, hogy a melegebb évek hozamkockázatot okoznak.":"A hőmérséklet hatása önmagában nem elég, a vízellátással együtt kell értelmezni."}`
+  );
+
+  setBox("yieldLossInsight",
+    `<strong>Értelmezés:</strong> a legnagyobb hozamveszteség éve <strong>${yieldLoss.max?yieldLoss.max.year:"–"}</strong> volt `+
+    `(${yieldLoss.max?fmt(yieldLoss.max.yield_loss_pct,1):"–"}%). A pozitív érték a referenciahozamhoz képest gyengébb teljesítményt jelent.`
+  );
+
+  setBox("selfSufficiencyInsight",
+    `<strong>Értelmezés:</strong> az önellátási arány legalacsonyabb értéke <strong>${self.min?self.min.year:"–"}</strong> évben volt `+
+    `(${self.min?pct(self.min.self_sufficiency_ratio):"–"}), a legmagasabb pedig <strong>${self.max?self.max.year:"–"}</strong> évben `+
+    `(${self.max?pct(self.max.self_sufficiency_ratio):"–"}). Trend: <strong>${trendLabel(selfTrend,"%")}</strong>.`
+  );
+
+  setBox("supportedPopulationInsight",
+    `<strong>Értelmezés:</strong> az eltartható népesség legkisebb becsült értéke <strong>${supported.min?supported.min.year:"–"}</strong> évben volt `+
+    `(${supported.min?fmt(supported.min.supported_population,0):"–"} fő), a legnagyobb pedig <strong>${supported.max?supported.max.year:"–"}</strong> évben `+
+    `(${supported.max?fmt(supported.max.supported_population,0):"–"} fő). Trend: <strong>${trendLabel(supportedTrend,"fő")}</strong>.`
+  );
+
+  setBox("waterBalanceInsight",
+    `<strong>Értelmezés:</strong> a vizsgált időszakban <strong>${dryYears}</strong> negatív vízmérlegű és <strong>${wetYears}</strong> pozitív vízmérlegű év volt. `+
+    `A legrosszabb év <strong>${water.min?water.min.year:"–"}</strong> (${water.min?fmt(water.min.water_balance_mm,1):"–"} mm), `+
+    `a legjobb év <strong>${water.max?water.max.year:"–"}</strong> (${water.max?fmt(water.max.water_balance_mm,1):"–"} mm). Trend: <strong>${trendLabel(waterTrend,"mm")}</strong>.`
+  );
+
+  setBox("climateImpactInsight",
+    `<strong>Értelmezés:</strong> a Climate Impact Score legalacsonyabb értéke <strong>${climate.min?climate.min.year:"–"}</strong> évben volt `+
+    `(${climate.min?fmt(climate.min.climate_impact_score,0):"–"}/100), a legmagasabb pedig <strong>${climate.max?climate.max.year:"–"}</strong> évben `+
+    `(${climate.max?fmt(climate.max.climate_impact_score,0):"–"}/100).`
+  );
+
+  setBox("securityStatusInsight",
+    `<strong>Értelmezés:</strong> ez a kombinált diagram együtt mutatja az önellátást, a klímahatást és a Food Security Indexet. `+
+    `Ha a Climate Impact romlik, de az önellátás magas marad, az rövid távon stabil, de klímakitettségű helyzetet jelent.`
+  );
+
+  setBox("foodSecurityChartInsight",
+    `<strong>Értelmezés:</strong> a Food Security Index leggyengébb éve <strong>${fsi.min?fsi.min.year:"–"}</strong> volt `+
+    `(${fsi.min?fmt(fsi.min.food_security_index,0):"–"}/100), legerősebb éve <strong>${fsi.max?fsi.max.year:"–"}</strong> `+
+    `(${fsi.max?fmt(fsi.max.food_security_index,0):"–"}/100). Trend: <strong>${trendLabel(fsiTrend,"pont")}</strong>.`
+  );
+
+  setBox("waterNeedInsight",
+    `<strong>Értelmezés:</strong> a tényleges csapadék és a becsült vízigény különbsége a vízmérleg. `+
+    `Tartós negatív érték esetén nő az aszály- és hozamkockázat. A kiválasztott év vízmérlege: <strong>${fmt(row.water_balance_mm,1)} mm</strong>.`
+  );
+
+  const global=document.getElementById("chartInterpretations");
+  if(global){
+    global.innerHTML=`A diagramok értelmezései most már az egyes diagramok alatt jelennek meg.`;
+  }
 }
 
 function updateMetrics(){const r=selectedRow();if(!r)return;const rows=cropRows(r.crop),cName=cropLabels[r.crop]||r.crop,cr=corr(rows.map(x=>x.precip_mm),rows.map(x=>x.yield_t_ha)),tcr=corr(rows.map(x=>x.avg_temp_c),rows.map(x=>x.yield_t_ha));document.getElementById("yearValue").textContent=r.year;document.getElementById("dataStatus").textContent=`Adatok betöltve: ${agriData.length} sor`;document.getElementById("areaValue").textContent=fmt(r.area_ha)+" ha";document.getElementById("productionValue").textContent=fmt(r.production_t)+" t";document.getElementById("yieldValue").textContent=fmt(r.yield_t_ha,2)+" t/ha";document.getElementById("precipValue").textContent=fmt(r.precip_mm,1)+" mm";document.getElementById("tempValue").textContent=fmt(r.avg_temp_c,1)+" °C";document.getElementById("waterValue").textContent=fmt(r.water_balance_mm,1)+" mm";document.getElementById("selfValue").textContent=pct(r.self_sufficiency_ratio);document.getElementById("supportedValue").textContent=fmt(r.supported_population)+" fő";document.getElementById("climateScoreValue").textContent=fmt(r.climate_impact_score)+"/100";document.getElementById("foodSecurityValue").textContent=fmt(r.food_security_index)+"/100";document.getElementById("adaptationValue").textContent=fmt(r.adaptation_score,1)+" pont";document.getElementById("corrValue").textContent=cr==null?"–":fmt(cr,2);document.getElementById("tempCorrValue").textContent=tcr==null?"–":fmt(tcr,2);document.getElementById("fsiLabel").textContent=r.food_security_label;document.getElementById("autoInsight").innerHTML=`<strong>${r.year} – ${cName}:</strong> csapadék ${fmt(r.precip_mm,1)} mm, átlaghőmérséklet ${fmt(r.avg_temp_c,1)} °C, vízmérleg ${fmt(r.water_balance_mm,1)} mm. Food Security Index: <strong>${fmt(r.food_security_index)}/100</strong> (${r.food_security_label}). Climate Adaptation: <strong>${fmt(r.adaptation_score,1)} pont</strong>.`;document.getElementById("aiReport").innerHTML=`<strong>AI Agrárjelentés – ${r.year}, ${cName}</strong><br><br><strong>Klíma:</strong> hőmérsékleti anomália ${fmt(r.temp_anomaly_c,2)} °C, vízmérleg ${fmt(r.water_balance_mm,1)} mm, Climate Impact ${fmt(r.climate_impact_score)}/100.<br><br><strong>Termelés:</strong> hozameltérés ${r.yield_loss_pct>0?"-":"+"}${fmt(Math.abs(r.yield_loss_pct),1)}% a referenciaátlaghoz képest.<br><br><strong>Ellátás:</strong> önellátási arány ${pct(r.self_sufficiency_ratio)}, eltartható népesség ${fmt(r.supported_population)} fő.<br><br><strong>Összegzés:</strong> Food Security Index ${fmt(r.food_security_index)}/100, besorolás: <strong>${r.food_security_label}</strong>.`;updateWinnerLoser();updateAdaptationTable();updateFoodSecurityExplain(r);updateChartInterpretations(r)}
