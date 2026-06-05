@@ -107,6 +107,50 @@ button{border:0;border-radius:999px;padding:9px 14px;background:#2f855a;color:wh
 </div>
 </section>
 
+<section class="analysis-row">
+<div class="panel">
+<h2>„Mi lenne ha?” klímaszimuláció</h2>
+<label>Hőmérséklet-változás</label>
+<select id="simTempDelta">
+<option value="0">0 °C</option>
+<option value="1">+1 °C</option>
+<option value="2">+2 °C</option>
+<option value="3">+3 °C</option>
+</select>
+<label>Csapadékváltozás</label>
+<select id="simPrecipDelta">
+<option value="0">0%</option>
+<option value="-10">−10%</option>
+<option value="-20">−20%</option>
+<option value="-30">−30%</option>
+<option value="10">+10%</option>
+</select>
+<div class="textbox" id="simulationText">Az adatok betöltése után jelenik meg.</div>
+</div>
+<div class="panel">
+<h2>Agrárbiztonsági kockázati index</h2>
+<div class="textbox" id="agriSecurityText">Az adatok betöltése után jelenik meg.</div>
+</div>
+</section>
+
+<section class="analysis-row">
+<div class="panel">
+<h2>Import/export modul előkészítés</h2>
+<div class="textbox" id="tradeModuleText">
+Ez a modul később külön adatfájlból számolható: export, import, külkereskedelmi egyenleg, stratégiai importkitettség. Jelenleg a dashboard termelési és önellátási oldalról közelíti az ellátásbiztonságot.
+</div>
+</div>
+<div class="panel">
+<h2>Adatigény a következő szinthez</h2>
+<div class="textbox">
+<strong>Import/export modulhoz szükséges:</strong><br>
+búza export/import, kukorica export/import, szója import, műtrágya import, takarmányimport, árszintek.<br><br>
+<strong>Megyei bontáshoz szükséges:</strong><br>
+megyei termés, termőterület, hozam és meteorológiai adatok.
+</div>
+</div>
+</section>
+
 <section class="charts">
 <div class="panel chart-panel wide">
 <h2>Animált évváltó oszlopdiagram</h2>
@@ -137,6 +181,8 @@ button{border:0;border-radius:999px;padding:9px 14px;background:#2f855a;color:wh
 <div class="panel chart-panel"><h2>13. Klímaadaptációs mutató</h2><canvas id="winnerLoserChart"></canvas><div class="method-box"><strong>Mit látunk?</strong><br>Azt mutatja, mely növények alkalmazkodási pozíciója javult vagy romlott. Már a hozamváltozás és a termőterület-változás is beleszámít.<br><strong>Módszertan:</strong><span class="formula">adaptációs pont = 0,60 × hozamváltozás % + 0,40 × termőterület-változás %</span></div></div>
 <div class="panel chart-panel"><h2>13/b. Növényi érzékenységi mátrix</h2><canvas id="sensitivityMatrixChart"></canvas><div class="textbox" id="sensitivityMatrixInsight">Az adatok betöltése után jelenik meg.</div><div class="method-box"><strong>Mit látunk?</strong><br>A vízigény és a klímaadaptációs pontszám alapján mutatja, mely növények tűnnek stabilabbnak és melyek sérülékenyebbnek.<br><strong>Módszertan:</strong><span class="formula">X = becsült vízigény (mm), Y = klímaadaptációs pontszám</span></div></div>
 <div class="panel chart-panel"><h2>13/c. 2030 és 2035 Food Security előrejelzés</h2><canvas id="forecastChart"></canvas><div class="textbox" id="forecastChartInsight">Az adatok betöltése után jelenik meg.</div><div class="method-box"><strong>Mit látunk?</strong><br>Egyszerű trendalapú becslés a kiválasztott növény Food Security Indexére.<br><strong>Módszertan:</strong><span class="formula">előrejelzés = utolsó 10 év lineáris trendje alapján számított becslés</span></div></div>
+<div class="panel chart-panel"><h2>13/d. Klímaszimuláció hatása</h2><canvas id="simulationChart"></canvas><div class="textbox" id="simulationChartInsight">Az adatok betöltése után jelenik meg.</div><div class="method-box"><strong>Mit látunk?</strong><br>A kiválasztott hőmérséklet- és csapadéksokk becsült hatását mutatja a Food Security Indexre és a hozamra.<br><strong>Módszertan:</strong><span class="formula">szimulált hozam = jelenlegi hozam × (1 − hőmérsékleti büntetés − csapadékbüntetés)</span></div></div>
+<div class="panel chart-panel"><h2>13/e. Agrárbiztonsági kockázati index</h2><canvas id="agriSecurityChart"></canvas><div class="textbox" id="agriSecurityChartInsight">Az adatok betöltése után jelenik meg.</div><div class="method-box"><strong>Mit látunk?</strong><br>A vízhiány, klímahatás, Food Security Index, hozamveszteség és önellátás alapján számított összesített kockázat.<br><strong>Módszertan:</strong><span class="formula">Agrárbiztonsági kockázat = vízhiány + klímahatás + FSI + hozamveszteség + önellátási kitettség</span></div></div>
 <div class="panel chart-panel wide"><h2>14. Tényleges csapadék és szükséges csapadék</h2><canvas id="waterNeedChart"></canvas><div class="textbox" id="waterNeedInsight">Az adatok betöltése után jelenik meg.</div></div>
 
 </section>
@@ -395,12 +441,88 @@ function updateForecastText(row){
   );
 }
 
+
+function climateSimulation(row){
+  if(!row)return null;
+  const tempDelta=Number(document.getElementById("simTempDelta")?.value ?? 0);
+  const precipDelta=Number(document.getElementById("simPrecipDelta")?.value ?? 0);
+  const tempPenalty=Math.max(0,tempDelta)*0.04;
+  const precipPenalty=Math.max(0,-precipDelta)*0.006;
+  const totalPenalty=Math.min(0.65,tempPenalty+precipPenalty);
+  const simulatedYield=Math.max(0,row.yield_t_ha*(1-totalPenalty));
+  const simulatedProduction=simulatedYield*row.area_ha;
+  const foodNeed=row.food_need_t || 0;
+  const simulatedSelf=foodNeed>0 ? simulatedProduction/foodNeed : row.self_sufficiency_ratio;
+  const simulatedWater=row.water_balance_mm + (row.precip_mm*(precipDelta/100)) - tempDelta*35;
+  let climateScore=row.climate_impact_score;
+  climateScore-=Math.max(0,tempDelta)*6;
+  climateScore-=Math.max(0,-precipDelta)*0.8;
+  climateScore-=simulatedWater<-100?12:(simulatedWater<0?6:0);
+  climateScore=bounded(climateScore,0,100);
+  const simulatedRow=Object.assign({},row,{
+    yield_t_ha:simulatedYield,
+    production_t:simulatedProduction,
+    self_sufficiency_ratio:simulatedSelf,
+    water_balance_mm:simulatedWater,
+    climate_impact_score:climateScore,
+    yield_loss_pct:row.ref_yield_t_ha?((row.ref_yield_t_ha-simulatedYield)/row.ref_yield_t_ha*100):row.yield_loss_pct
+  });
+  simulatedRow.food_security_index=foodSecurityIndex(simulatedRow);
+  simulatedRow.food_security_label=foodSecurityCategory(simulatedRow.food_security_index);
+  return {tempDelta,precipDelta,totalPenalty,simulatedRow};
+}
+function agriSecurityRisk(row){
+  if(!row)return {score:null,label:"–",cls:"mid"};
+  let risk=0;
+  risk+=row.water_balance_mm< -150?25:(row.water_balance_mm< -50?15:(row.water_balance_mm<0?8:0));
+  risk+=row.climate_impact_score<40?25:(row.climate_impact_score<60?15:(row.climate_impact_score<75?8:0));
+  risk+=row.food_security_index<60?25:(row.food_security_index<75?15:(row.food_security_index<90?8:0));
+  risk+=row.yield_loss_pct>25?15:(row.yield_loss_pct>10?8:(row.yield_loss_pct>0?4:0));
+  risk+=row.self_sufficiency_ratio<1?10:(row.self_sufficiency_ratio<1.2?5:0);
+  risk=bounded(risk,0,100);
+  if(risk>=65)return {score:risk,label:"🔴 magas",cls:"bad"};
+  if(risk>=35)return {score:risk,label:"🟡 közepes",cls:"mid"};
+  return {score:risk,label:"🟢 alacsony",cls:"good"};
+}
+function updateSimulation(row){
+  const sim=climateSimulation(row);
+  if(!sim)return;
+  const s=sim.simulatedRow;
+  setBox("simulationText",
+    `<strong>Beállított sokk:</strong> +${sim.tempDelta} °C hőmérséklet, ${sim.precipDelta}% csapadék.<br><br>`+
+    `<strong>Becsült hatás:</strong><br>`+
+    `Hozam: <strong>${fmt(row.yield_t_ha,2)} → ${fmt(s.yield_t_ha,2)} t/ha</strong><br>`+
+    `Vízmérleg: <strong>${fmt(row.water_balance_mm,1)} → ${fmt(s.water_balance_mm,1)} mm</strong><br>`+
+    `Önellátás: <strong>${pct(row.self_sufficiency_ratio)} → ${pct(s.self_sufficiency_ratio)}</strong><br>`+
+    `Food Security Index: <strong>${fmt(row.food_security_index,0)} → ${fmt(s.food_security_index,0)}/100</strong> (${s.food_security_label})<br><br>`+
+    `<em>Ez egyszerű érzékenységi szimuláció, nem agronómiai termésmodell.</em>`
+  );
+  setBox("simulationChartInsight",
+    `<strong>Értelmezés:</strong> a kiválasztott klímasokk ${fmt(sim.totalPenalty*100,1)}% becsült hozamnyomást jelent. `+
+    `A Food Security Index változása: <strong>${fmt(s.food_security_index-row.food_security_index,1)} pont</strong>.`
+  );
+}
+function updateAgriSecurity(row){
+  const r=agriSecurityRisk(row);
+  setBox("agriSecurityText",
+    `<strong>Aktuális agrárbiztonsági kockázat:</strong> ${r.label}, <strong>${fmt(r.score,0)}/100</strong>.<br><br>`+
+    `A mutató a vízmérleg, Climate Impact Score, Food Security Index, hozamveszteség és önellátási arány alapján becsül kockázatot. `+
+    `Magasabb pontszám nagyobb sérülékenységet jelent.`
+  );
+  setBox("agriSecurityChartInsight",
+    `<strong>Értelmezés:</strong> a kockázati index 0–100 skálán mozog. 35 alatt alacsony, 35–65 között közepes, 65 felett magas kockázatot jelez.`
+  );
+}
+function riskRowsForCrop(crop){
+  return cropRows(crop).map(r=>Object.assign({},r,{agri_security_risk:agriSecurityRisk(r).score}));
+}
+
 function updateMetrics(){const r=selectedRow();if(!r)return;const rows=cropRows(r.crop),cName=cropLabels[r.crop]||r.crop,cr=corr(rows.map(x=>x.precip_mm),rows.map(x=>x.yield_t_ha)),tcr=corr(rows.map(x=>x.avg_temp_c),rows.map(x=>x.yield_t_ha));document.getElementById("yearValue").textContent=r.year;document.getElementById("dataStatus").textContent=`Adatok betöltve: ${agriData.length} sor`;document.getElementById("areaValue").textContent=fmt(r.area_ha)+" ha";document.getElementById("productionValue").textContent=fmt(r.production_t)+" t";document.getElementById("yieldValue").textContent=fmt(r.yield_t_ha,2)+" t/ha";document.getElementById("precipValue").textContent=fmt(r.precip_mm,1)+" mm";document.getElementById("tempValue").textContent=fmt(r.avg_temp_c,1)+" °C";document.getElementById("waterValue").textContent=fmt(r.water_balance_mm,1)+" mm";document.getElementById("selfValue").textContent=pct(r.self_sufficiency_ratio);document.getElementById("supportedValue").textContent=fmt(r.supported_population)+" fő";document.getElementById("climateScoreValue").textContent=fmt(r.climate_impact_score)+"/100";document.getElementById("foodSecurityValue").textContent=fmt(r.food_security_index)+"/100";document.getElementById("adaptationValue").textContent=fmt(r.adaptation_score,1)+" pont";
 const risk=riskSignal(r);
 if(document.getElementById("riskSignalValue"))document.getElementById("riskSignalValue").textContent=risk.label;
 const f2030=forecastForCrop(r.crop,2030),f2035=forecastForCrop(r.crop,2035);
 if(document.getElementById("forecast2030Value"))document.getElementById("forecast2030Value").textContent=fmt(f2030.food_security_index,0)+"/100";
-if(document.getElementById("forecast2035Value"))document.getElementById("forecast2035Value").textContent=fmt(f2035.food_security_index,0)+"/100";document.getElementById("corrValue").textContent=cr==null?"–":fmt(cr,2);document.getElementById("tempCorrValue").textContent=tcr==null?"–":fmt(tcr,2);document.getElementById("fsiLabel").textContent=r.food_security_label;document.getElementById("autoInsight").innerHTML=`<strong>${r.year} – ${cName}:</strong> csapadék ${fmt(r.precip_mm,1)} mm, átlaghőmérséklet ${fmt(r.avg_temp_c,1)} °C, vízmérleg ${fmt(r.water_balance_mm,1)} mm. Food Security Index: <strong>${fmt(r.food_security_index)}/100</strong> (${r.food_security_label}). Climate Adaptation: <strong>${fmt(r.adaptation_score,1)} pont</strong>.`;document.getElementById("aiReport").innerHTML=`<strong>AI Agrárjelentés – ${r.year}, ${cName}</strong><br><br><strong>Klíma:</strong> hőmérsékleti anomália ${fmt(r.temp_anomaly_c,2)} °C, vízmérleg ${fmt(r.water_balance_mm,1)} mm, Climate Impact ${fmt(r.climate_impact_score)}/100.<br><br><strong>Termelés:</strong> hozameltérés ${r.yield_loss_pct>0?"-":"+"}${fmt(Math.abs(r.yield_loss_pct),1)}% a referenciaátlaghoz képest.<br><br><strong>Ellátás:</strong> önellátási arány ${pct(r.self_sufficiency_ratio)}, eltartható népesség ${fmt(r.supported_population)} fő.<br><br><strong>Összegzés:</strong> Food Security Index ${fmt(r.food_security_index)}/100, besorolás: <strong>${r.food_security_label}</strong>.`;updateWinnerLoser();updateAdaptationTable();updateFoodSecurityExplain(r);updateChartInterpretations(r);updateStrategicAI(r);updateForecastText(r)}
+if(document.getElementById("forecast2035Value"))document.getElementById("forecast2035Value").textContent=fmt(f2035.food_security_index,0)+"/100";document.getElementById("corrValue").textContent=cr==null?"–":fmt(cr,2);document.getElementById("tempCorrValue").textContent=tcr==null?"–":fmt(tcr,2);document.getElementById("fsiLabel").textContent=r.food_security_label;document.getElementById("autoInsight").innerHTML=`<strong>${r.year} – ${cName}:</strong> csapadék ${fmt(r.precip_mm,1)} mm, átlaghőmérséklet ${fmt(r.avg_temp_c,1)} °C, vízmérleg ${fmt(r.water_balance_mm,1)} mm. Food Security Index: <strong>${fmt(r.food_security_index)}/100</strong> (${r.food_security_label}). Climate Adaptation: <strong>${fmt(r.adaptation_score,1)} pont</strong>.`;document.getElementById("aiReport").innerHTML=`<strong>AI Agrárjelentés – ${r.year}, ${cName}</strong><br><br><strong>Klíma:</strong> hőmérsékleti anomália ${fmt(r.temp_anomaly_c,2)} °C, vízmérleg ${fmt(r.water_balance_mm,1)} mm, Climate Impact ${fmt(r.climate_impact_score)}/100.<br><br><strong>Termelés:</strong> hozameltérés ${r.yield_loss_pct>0?"-":"+"}${fmt(Math.abs(r.yield_loss_pct),1)}% a referenciaátlaghoz képest.<br><br><strong>Ellátás:</strong> önellátási arány ${pct(r.self_sufficiency_ratio)}, eltartható népesség ${fmt(r.supported_population)} fő.<br><br><strong>Összegzés:</strong> Food Security Index ${fmt(r.food_security_index)}/100, besorolás: <strong>${r.food_security_label}</strong>.`;updateWinnerLoser();updateAdaptationTable();updateFoodSecurityExplain(r);updateChartInterpretations(r);updateStrategicAI(r);updateForecastText(r);updateSimulation(r);updateAgriSecurity(r)}
 function destroy(id){if(charts[id])charts[id].destroy()}
 function line(id,labels,datasets,ytitle){destroy(id);charts[id]=new Chart(document.getElementById(id),{type:"line",data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{labels:{color:"#334155"}}},scales:{x:{ticks:{color:"#475569"}},y:{title:{display:true,text:ytitle,color:"#475569"},ticks:{color:"#475569"}}}}})}
 function scatter(id,data,label,xt,yt,color){destroy(id);charts[id]=new Chart(document.getElementById(id),{type:"scatter",data:{datasets:[{label,data,backgroundColor:color,borderColor:color}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:xt}},y:{title:{display:true,text:yt}}}}})}
@@ -418,9 +540,16 @@ const f2030=forecastForCrop(c,2030),f2035=forecastForCrop(c,2035);
 line("forecastChart",[String(Number(document.getElementById("yearRange").value)),"2030","2035"],[
   {label:"Food Security Index",data:[selectedRow()?.food_security_index,f2030.food_security_index,f2035.food_security_index],borderColor:"#ca8a04",backgroundColor:"#ca8a04",tension:.2}
 ],"pont");
-setBox("forecastChartInsight",`<strong>Értelmezés:</strong> a kiválasztott növény Food Security Indexe a trend alapján 2030-ra <strong>${fmt(f2030.food_security_index,0)}/100</strong>, 2035-re <strong>${fmt(f2035.food_security_index,0)}/100</strong> értékre becsülhető.`);line("waterNeedChart",rows.map(r=>r.year),[{label:"Tényleges csapadék",data:rows.map(r=>r.precip_mm),borderColor:"#2563eb"},{label:"Szükséges csapadék",data:rows.map(r=>r.water_need_mid_mm),borderColor:"#f59e0b"},{label:"Vízmérleg",data:rows.map(r=>r.water_balance_mm),borderColor:"#16a34a"}],"mm");updateAnimatedBar(Number(document.getElementById("yearRange").value))}
+setBox("forecastChartInsight",`<strong>Értelmezés:</strong> a kiválasztott növény Food Security Indexe a trend alapján 2030-ra <strong>${fmt(f2030.food_security_index,0)}/100</strong>, 2035-re <strong>${fmt(f2035.food_security_index,0)}/100</strong> értékre becsülhető.`);
+const sim=climateSimulation(selectedRow());
+if(sim){
+  const s=sim.simulatedRow;
+  bar("simulationChart",["Jelenlegi","Szimulált"],[selectedRow().food_security_index,s.food_security_index],"Food Security Index","pont",["#2f855a","#dc2626"]);
+}
+const rr=riskRowsForCrop(c);
+line("agriSecurityChart",rr.map(r=>r.year),[{label:"Agrárbiztonsági kockázat",data:rr.map(r=>r.agri_security_risk),borderColor:"#dc2626",backgroundColor:"#dc2626",tension:.2}],"pont");line("waterNeedChart",rows.map(r=>r.year),[{label:"Tényleges csapadék",data:rows.map(r=>r.precip_mm),borderColor:"#2563eb"},{label:"Szükséges csapadék",data:rows.map(r=>r.water_need_mid_mm),borderColor:"#f59e0b"},{label:"Vízmérleg",data:rows.map(r=>r.water_balance_mm),borderColor:"#16a34a"}],"mm");updateAnimatedBar(Number(document.getElementById("yearRange").value))}
 function updateAll(){updateMetrics();updateCharts()}
-async function init(){try{agriData=await loadData();derive();fillSelectors()}catch(e){document.getElementById("dataStatus").textContent="Adatbetöltési hiba";err(e.message);return}document.getElementById("yearRange").addEventListener("input",updateAll);document.getElementById("cropSelect").addEventListener("change",updateAll);document.getElementById("multiCropSelect").addEventListener("change",updateCharts);document.getElementById("playBtn").addEventListener("click",play);document.getElementById("stopBtn").addEventListener("click",stop);document.getElementById("animMetric").addEventListener("change",()=>updateAnimatedBar(Number(document.getElementById("yearRange").value)));updateAll()}
+async function init(){try{agriData=await loadData();derive();fillSelectors()}catch(e){document.getElementById("dataStatus").textContent="Adatbetöltési hiba";err(e.message);return}document.getElementById("yearRange").addEventListener("input",updateAll);document.getElementById("cropSelect").addEventListener("change",updateAll);document.getElementById("multiCropSelect").addEventListener("change",updateCharts);document.getElementById("playBtn").addEventListener("click",play);document.getElementById("stopBtn").addEventListener("click",stop);document.getElementById("animMetric").addEventListener("change",()=>updateAnimatedBar(Number(document.getElementById("yearRange").value)));if(document.getElementById("simTempDelta"))document.getElementById("simTempDelta").addEventListener("change",updateAll);if(document.getElementById("simPrecipDelta"))document.getElementById("simPrecipDelta").addEventListener("change",updateAll);updateAll()}
 init();
 </script>
 </body>
