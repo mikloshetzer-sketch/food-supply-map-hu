@@ -746,6 +746,177 @@ if(nr.length){
 }line("waterNeedChart",rows.map(r=>r.year),[{label:"Tényleges csapadék",data:rows.map(r=>r.precip_mm),borderColor:"#2563eb"},{label:"Szükséges csapadék",data:rows.map(r=>r.water_need_mid_mm),borderColor:"#f59e0b"},{label:"Vízmérleg",data:rows.map(r=>r.water_balance_mm),borderColor:"#16a34a"}],"mm");updateAnimatedBar(Number(document.getElementById("yearRange").value))}
 function updateAll(){updateMetrics();updateCharts()}
 async function init(){try{agriData=await loadData();supplyData=await loadSupplyData();derive();fillSelectors()}catch(e){document.getElementById("dataStatus").textContent="Adatbetöltési hiba";err(e.message);return}document.getElementById("yearRange").addEventListener("input",updateAll);document.getElementById("cropSelect").addEventListener("change",updateAll);document.getElementById("multiCropSelect").addEventListener("change",updateCharts);document.getElementById("playBtn").addEventListener("click",play);document.getElementById("stopBtn").addEventListener("click",stop);document.getElementById("animMetric").addEventListener("change",()=>updateAnimatedBar(Number(document.getElementById("yearRange").value)));if(document.getElementById("simTempDelta"))document.getElementById("simTempDelta").addEventListener("change",updateAll);if(document.getElementById("simPrecipDelta"))document.getElementById("simPrecipDelta").addEventListener("change",updateAll);updateAll()}
+
+<script>
+/* v17 fix: egységesített crop-azonosítás a master_agri_database.csv és a supply_balance_master.csv között */
+const SUPPLY_CROP_MAP_V17 = {
+  "búza":"wheat","buza":"wheat","wheat":"wheat","Búza":"wheat",
+  "kukorica":"maize","maize":"maize","corn":"maize","Kukorica":"maize",
+  "árpa":"barley","arpa":"barley","barley":"barley","Árpa":"barley",
+  "rozs":"rye","rye":"rye","Rozs":"rye",
+  "zab":"oats","oats":"oats","Zab":"oats",
+  "tritikálé":"triticale","tritikale":"triticale","triticale":"triticale","Tritikálé":"triticale",
+  "rizs":"rice","rice":"rice","Rizs":"rice",
+  "napraforgó":"sunflower","napraforgo":"sunflower","sunflower":"sunflower","Napraforgó":"sunflower",
+  "repce":"rapeseed","rapeseed":"rapeseed","rape":"rapeseed","Repce":"rapeseed",
+  "szója":"soybean","szoja":"soybean","soybean":"soybean","soya":"soybean","Szója":"soybean",
+  "burgonya":"potato","potato":"potato","Burgonya":"potato",
+  "cukorrépa":"sugar_beet","cukorrepa":"sugar_beet","sugar_beet":"sugar_beet","Cukorrépa":"sugar_beet",
+  "cereals_total":"cereals_total","gabonafélék összesen":"cereals_total"
+};
+
+function normalizeCropV17(crop){
+  if(crop==null)return "";
+  const raw=String(crop).trim();
+  if(SUPPLY_CROP_MAP_V17[raw])return SUPPLY_CROP_MAP_V17[raw];
+  const low=raw.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/\s+/g,"_");
+  return SUPPLY_CROP_MAP_V17[low] || low;
+}
+
+function availableSupplyYears(crop){
+  const sc=normalizeCropV17(crop);
+  return [...new Set(
+    supplyData
+      .filter(r=>normalizeCropV17(r.crop)===sc)
+      .map(r=>Number(r.year))
+      .filter(y=>!isNaN(y))
+  )].sort((a,b)=>a-b);
+}
+
+function resolveSupplyYear(selectedYear,crop){
+  const ys=availableSupplyYears(crop);
+  if(!ys.length)return null;
+  const sy=Number(selectedYear);
+  if(ys.includes(sy))return sy;
+  const past=ys.filter(y=>y<=sy);
+  if(past.length)return Math.max(...past);
+  return Math.max(...ys);
+}
+
+function supplyValue(year,crop,category,unit=null){
+  const sc=normalizeCropV17(crop);
+  const cat=String(category).trim();
+  let candidates=supplyData.filter(r=>
+    Number(r.year)===Number(year) &&
+    normalizeCropV17(r.crop)===sc &&
+    String(r.category).trim()===cat
+  );
+  if(unit){
+    const unitFiltered=candidates.filter(r=>String(r.unit).trim()===unit);
+    if(unitFiltered.length)candidates=unitFiltered;
+  }
+  if(!candidates.length)return null;
+  const vals=candidates.map(r=>Number(r.value)).filter(v=>!isNaN(v));
+  return vals.length?Math.max(...vals):null;
+}
+
+function supplyMetricRow(year,crop){
+  const sc=normalizeCropV17(crop);
+  const production=supplyValue(year,sc,"production","t");
+  const imports=supplyValue(year,sc,"imports","t");
+  const exports=supplyValue(year,sc,"exports","t");
+  const totalUse=supplyValue(year,sc,"total_use","t");
+  const closingStock=supplyValue(year,sc,"closing_stock","t");
+  const feedUse=supplyValue(year,sc,"feed_use","t");
+  const foodUse=supplyValue(year,sc,"food_use","t");
+  const industrialUse=supplyValue(year,sc,"industrial_use","t");
+  const apparent=production!=null&&imports!=null&&exports!=null ? production+imports-exports : null;
+  return {
+    year:Number(year),
+    crop:sc,
+    production,imports,exports,totalUse,closingStock,feedUse,foodUse,industrialUse,apparent,
+    importDependency:apparent&&apparent>0&&imports!=null ? imports/apparent : null,
+    exportRatio:production&&production>0&&exports!=null ? exports/production : null,
+    stockSecurity:totalUse&&totalUse>0&&closingStock!=null ? closingStock/totalUse : null,
+    feedRatio:production&&production>0&&feedUse!=null ? feedUse/production : null,
+    foodRatio:production&&production>0&&foodUse!=null ? foodUse/production : null,
+    industrialRatio:production&&production>0&&industrialUse!=null ? industrialUse/production : null
+  };
+}
+
+function supplyRowsForCrop(crop){
+  const sc=normalizeCropV17(crop);
+  return availableSupplyYears(sc)
+    .map(y=>supplyMetricRow(y,sc))
+    .filter(r=>r.production!=null||r.imports!=null||r.exports!=null||r.totalUse!=null);
+}
+
+function supportedSupplyCrops(){
+  const agCrops=[...new Set(agriData.map(r=>r.crop))];
+  const supCrops=[...new Set(supplyData.map(r=>normalizeCropV17(r.crop)))];
+  return agCrops.filter(c=>supCrops.includes(normalizeCropV17(c)));
+}
+
+function updateSupplySecurity(row){
+  if(!row)return;
+  const supplyCrop=normalizeCropV17(row.crop);
+  const usedYear=resolveSupplyYear(row.year,supplyCrop);
+  dataQualityStatus(row,usedYear);
+
+  if(usedYear==null){
+    setBox("supplySecurityText",`Ehhez a növényhez nincs supply balance adat a <strong>supply_balance_master.csv</strong> fájlban.<br><br><strong>Kiválasztott növény:</strong> ${(cropLabels[row.crop]||row.crop)}<br><strong>Keresett supply azonosító:</strong> ${supplyCrop}`);
+    setBox("supplySecurityIndexText",`Nincs számítható ellátásbiztonsági index.`);
+    return;
+  }
+
+  const s=supplyMetricRow(usedYear,supplyCrop);
+  const idx=supplySecurityIndex(s,row);
+  const label=supplySecurityLabel(idx);
+
+  if(s.production==null&&s.imports==null&&s.exports==null&&s.totalUse==null){
+    setBox("supplySecurityText",
+      `Ehhez a növényhez/évhez még nincs használható supply balance mérlegadat.<br><br>`+
+      `<strong>Kiválasztott év:</strong> ${row.year}<br>`+
+      `<strong>Supply balance adatév:</strong> ${usedYear}<br>`+
+      `<strong>Kiválasztott növény:</strong> ${(cropLabels[row.crop]||row.crop)}<br>`+
+      `<strong>Keresett supply azonosító:</strong> ${supplyCrop}`
+    );
+    setBox("supplySecurityIndexText",`Nincs számítható ellátásbiztonsági index.`);
+    return;
+  }
+
+  setBox("supplySecurityText",
+    `<strong>${row.year} – ${(cropLabels[row.crop]||row.crop)} ellátási mérlege</strong><br>`+
+    `<span class="badge ${Number(row.year)===Number(usedYear)?"good":"mid"}">${supplyYearNote(row.year,usedYear)}</span><br><br>`+
+    `Termelés: <strong>${fmt(s.production,0)} t</strong><br>`+
+    `Import: <strong>${fmt(s.imports,0)} t</strong><br>`+
+    `Export: <strong>${fmt(s.exports,0)} t</strong><br>`+
+    `Összes felhasználás: <strong>${fmt(s.totalUse,0)} t</strong><br>`+
+    `Zárókészlet: <strong>${fmt(s.closingStock,0)} t</strong><br><br>`+
+    `Importfüggőség: <strong>${pct(s.importDependency,1)}</strong><br>`+
+    `Exportarány: <strong>${pct(s.exportRatio,1)}</strong><br>`+
+    `Készletbiztonság: <strong>${pct(s.stockSecurity,1)}</strong><br>`+
+    `Takarmányarány: <strong>${pct(s.feedRatio,1)}</strong>`
+  );
+
+  setBox("supplySecurityIndexText",
+    `<strong>Agrár ellátásbiztonsági index:</strong> <strong>${fmt(idx,0)}/100</strong> (${label}).<br><br>`+
+    `<strong>Adatév:</strong> ${supplyYearNote(row.year,usedYear)}<br><br>`+
+    `Az index a Food Security Indexet import-, export-, készlet- és agrárkockázati tényezőkkel egészíti ki.`
+  );
+
+  setBox("tradeDependencyInsight",
+    `<strong>Értelmezés:</strong> a diagram a <strong>${usedYear}</strong>. évi supply balance adatokat használja. `+
+    `Importfüggőség: ${pct(s.importDependency,1)}, exportarány: ${pct(s.exportRatio,1)}.`
+  );
+
+  setBox("stockFeedInsight",
+    `<strong>Értelmezés:</strong> a diagram a <strong>${usedYear}</strong>. évi supply balance adatokat használja. `+
+    `Készletbiztonság: ${pct(s.stockSecurity,1)}, takarmányarány: ${pct(s.feedRatio,1)}.`
+  );
+
+  setBox("supplySecurityIndexInsight",
+    `<strong>Értelmezés:</strong> az agrár ellátásbiztonsági index ${fmt(idx,0)}/100, besorolása: <strong>${label}</strong>. `+
+    `<strong>Supply balance adatév:</strong> ${usedYear}.`
+  );
+
+  updateVulnerability(row);
+  updateNationalAgriSecurity(row);
+}
+</script>
+
 init();
 </script>
 </body>
