@@ -135,19 +135,23 @@ button{border:0;border-radius:999px;padding:9px 14px;background:#2f855a;color:wh
 
 <section class="analysis-row">
 <div class="panel">
-<h2>Import/export modul előkészítés</h2>
-<div class="textbox" id="tradeModuleText">
-Ez a modul később külön adatfájlból számolható: export, import, külkereskedelmi egyenleg, stratégiai importkitettség. Jelenleg a dashboard termelési és önellátási oldalról közelíti az ellátásbiztonságot.
-</div>
+<h2>Ellátási mérleg – import/export</h2>
+<div class="textbox" id="supplySecurityText">A supply balance adatok betöltése után jelenik meg.</div>
 </div>
 <div class="panel">
-<h2>Adatigény a következő szinthez</h2>
-<div class="textbox">
-<strong>Import/export modulhoz szükséges:</strong><br>
-búza export/import, kukorica export/import, szója import, műtrágya import, takarmányimport, árszintek.<br><br>
-<strong>Megyei bontáshoz szükséges:</strong><br>
-megyei termés, termőterület, hozam és meteorológiai adatok.
+<h2>Adatminőség és évkezelés</h2>
+<div class="textbox" id="dataQualityText">A supply balance adatok betöltése után jelenik meg.</div>
 </div>
+</section>
+
+<section class="analysis-row">
+<div class="panel">
+<h2>Agrár ellátásbiztonsági értékelés</h2>
+<div class="textbox" id="supplySecurityIndexText">A supply balance adatok betöltése után jelenik meg.</div>
+</div>
+<div class="panel">
+<h2>Magyarország élelmiszer-ellátási sérülékenysége</h2>
+<div class="textbox" id="vulnerabilityText">A supply balance adatok betöltése után jelenik meg.</div>
 </div>
 </section>
 
@@ -183,12 +187,16 @@ megyei termés, termőterület, hozam és meteorológiai adatok.
 <div class="panel chart-panel"><h2>13/c. 2030 és 2035 Food Security előrejelzés</h2><canvas id="forecastChart"></canvas><div class="textbox" id="forecastChartInsight">Az adatok betöltése után jelenik meg.</div><div class="method-box"><strong>Mit látunk?</strong><br>Egyszerű trendalapú becslés a kiválasztott növény Food Security Indexére.<br><strong>Módszertan:</strong><span class="formula">előrejelzés = utolsó 10 év lineáris trendje alapján számított becslés</span></div></div>
 <div class="panel chart-panel"><h2>13/d. Klímaszimuláció hatása</h2><canvas id="simulationChart"></canvas><div class="textbox" id="simulationChartInsight">Az adatok betöltése után jelenik meg.</div><div class="method-box"><strong>Mit látunk?</strong><br>A kiválasztott hőmérséklet- és csapadéksokk becsült hatását mutatja a Food Security Indexre és a hozamra.<br><strong>Módszertan:</strong><span class="formula">szimulált hozam = jelenlegi hozam × (1 − hőmérsékleti büntetés − csapadékbüntetés)</span></div></div>
 <div class="panel chart-panel"><h2>13/e. Agrárbiztonsági kockázati index</h2><canvas id="agriSecurityChart"></canvas><div class="textbox" id="agriSecurityChartInsight">Az adatok betöltése után jelenik meg.</div><div class="method-box"><strong>Mit látunk?</strong><br>A vízhiány, klímahatás, Food Security Index, hozamveszteség és önellátás alapján számított összesített kockázat.<br><strong>Módszertan:</strong><span class="formula">Agrárbiztonsági kockázat = vízhiány + klímahatás + FSI + hozamveszteség + önellátási kitettség</span></div></div>
+<div class="panel chart-panel"><h2>13/f. Importfüggőség és exportorientáció</h2><canvas id="tradeDependencyChart"></canvas><div class="textbox" id="tradeDependencyInsight">A supply balance adatok betöltése után jelenik meg.</div><div class="method-box"><strong>Mit látunk?</strong><br>A kiválasztott növény importfüggőségét és exportorientációját mutatja.<br><strong>Módszertan:</strong><span class="formula">importfüggőség = import / (termelés + import − export)</span><span class="formula">exportarány = export / termelés</span></div></div>
+<div class="panel chart-panel"><h2>13/g. Készletbiztonság és takarmánykitettség</h2><canvas id="stockFeedChart"></canvas><div class="textbox" id="stockFeedInsight">A supply balance adatok betöltése után jelenik meg.</div><div class="method-box"><strong>Mit látunk?</strong><br>A zárókészlet és a takarmányfelhasználás arányát mutatja.<br><strong>Módszertan:</strong><span class="formula">készletbiztonság = zárókészlet / összes felhasználás</span><span class="formula">takarmányarány = takarmányfelhasználás / termelés</span></div></div>
+<div class="panel chart-panel wide"><h2>13/h. Agrár ellátásbiztonsági index</h2><canvas id="supplySecurityIndexChart"></canvas><div class="textbox" id="supplySecurityIndexInsight">A supply balance adatok betöltése után jelenik meg.</div><div class="method-box"><strong>Mit látunk?</strong><br>A klíma-, termelési és külkereskedelmi kitettséget egyesítő összetett ellátásbiztonsági mutató.<br><strong>Módszertan:</strong><span class="formula">Supply Security Index = 35% FSI + 25% importbiztonság + 15% készlet + 15% exportpozíció + 10% agrárkockázat</span></div></div>
+<div class="panel chart-panel wide"><h2>13/i. Növényenkénti sérülékenységi rangsor</h2><canvas id="vulnerabilityChart"></canvas><div class="textbox" id="vulnerabilityChartInsight">A supply balance adatok betöltése után jelenik meg.</div><div class="method-box"><strong>Mit látunk?</strong><br>A fő növények ellátási sérülékenységi rangsorát mutatja.<br><strong>Módszertan:</strong><span class="formula">sérülékenység = 100 − agrár ellátásbiztonsági index</span></div></div>
 <div class="panel chart-panel wide"><h2>14. Tényleges csapadék és szükséges csapadék</h2><canvas id="waterNeedChart"></canvas><div class="textbox" id="waterNeedInsight">Az adatok betöltése után jelenik meg.</div></div>
 
 </section>
 
 <script>
-const DATA_URL="data/agriculture/master_agri_database.csv";let agriData=[],charts={},animTimer=null,animIndex=0;
+const DATA_URL="data/agriculture/master_agri_database.csv";const SUPPLY_URL="data/agriculture/supply_balance_master.csv";let agriData=[],supplyData=[],charts={},animTimer=null,animIndex=0;
 const cropLabels={wheat:"Búza",maize:"Kukorica",barley:"Árpa",rye:"Rozs",oats:"Zab",sunflower:"Napraforgó",rapeseed:"Repce",soybean:"Szója",potato:"Burgonya",sugar_beet:"Cukorrépa"};
 const colors={wheat:"#ca8a04",maize:"#facc15",barley:"#84cc16",rye:"#78716c",oats:"#a3e635",sunflower:"#f59e0b",rapeseed:"#22c55e",soybean:"#2563eb",potato:"#92400e",sugar_beet:"#db2777"};
 const defaults=["wheat","maize","barley","sunflower","rapeseed"];
@@ -517,12 +525,171 @@ function riskRowsForCrop(crop){
   return cropRows(crop).map(r=>Object.assign({},r,{agri_security_risk:agriSecurityRisk(r).score}));
 }
 
+
+/* Supply balance modul - külön CSV parserrel, hogy a category/unit oszlopok ne vesszenek el */
+const SUPPLY_CROP_MAP={
+  "búza":"wheat","buza":"wheat","wheat":"wheat",
+  "kukorica":"maize","maize":"maize","corn":"maize",
+  "árpa":"barley","arpa":"barley","barley":"barley",
+  "rozs":"rye","rye":"rye",
+  "zab":"oats","oats":"oats",
+  "tritikálé":"triticale","tritikale":"triticale","triticale":"triticale",
+  "rizs":"rice","rice":"rice",
+  "napraforgó":"sunflower","napraforgo":"sunflower","sunflower":"sunflower",
+  "repce":"rapeseed","rapeseed":"rapeseed","rape":"rapeseed",
+  "szója":"soybean","szoja":"soybean","soybean":"soybean","soya":"soybean",
+  "burgonya":"potato","potato":"potato",
+  "cukorrépa":"sugar_beet","cukorrepa":"sugar_beet","sugar_beet":"sugar_beet"
+};
+function normalizeSupplyCrop(crop){
+  if(crop==null)return "";
+  const raw=String(crop).trim();
+  const low=raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"_");
+  return SUPPLY_CROP_MAP[raw] || SUPPLY_CROP_MAP[raw.toLowerCase()] || SUPPLY_CROP_MAP[low] || low;
+}
+function parseSupplyCSV(text){
+  const lines=text.replace(/^\uFEFF/,"").split(/\r?\n/).filter(l=>l.trim());
+  if(!lines.length)return [];
+  const h=parseLine(lines[0]).map(x=>x.trim().replace(/^\uFEFF/,""));
+  const stringCols=new Set(["crop","crop_hu","group","category","category_hu","unit","source_file","sheet","column_header","raw_label"]);
+  return lines.slice(1).map(line=>{
+    const v=parseLine(line),o={};
+    h.forEach((k,i)=>{
+      const val=(v[i]??"").trim();
+      if(stringCols.has(k))o[k]=val;
+      else o[k]=val===""?null:Number(val);
+    });
+    return o;
+  }).filter(r=>r.year&&r.crop&&r.category);
+}
+async function loadSupplyData(){
+  try{
+    const res=await fetch(SUPPLY_URL,{cache:"no-store"});
+    if(!res.ok)throw new Error("Supply CSV nem elérhető: "+res.status);
+    return parseSupplyCSV(await res.text());
+  }catch(e){
+    console.warn("Supply balance adatok nem töltődtek be:",e);
+    return [];
+  }
+}
+function availableSupplyYears(crop){
+  const sc=normalizeSupplyCrop(crop);
+  return [...new Set(supplyData.filter(r=>normalizeSupplyCrop(r.crop)===sc).map(r=>Number(r.year)).filter(y=>!isNaN(y)))].sort((a,b)=>a-b);
+}
+function resolveSupplyYear(selectedYear,crop){
+  const ys=availableSupplyYears(crop);
+  if(!ys.length)return null;
+  const sy=Number(selectedYear);
+  if(ys.includes(sy))return sy;
+  const past=ys.filter(y=>y<=sy);
+  if(past.length)return Math.max(...past);
+  return Math.max(...ys);
+}
+function supplyYearNote(selectedYear,usedYear){
+  if(usedYear==null)return "Nincs elérhető supply balance adat.";
+  if(Number(selectedYear)===Number(usedYear))return `Supply balance adatév: ${usedYear}.`;
+  return `Kiválasztott év: ${selectedYear}. Supply balance adatév: ${usedYear}. A rendszer a legutolsó elérhető mérlegévet használja.`;
+}
+function supplyValue(year,crop,category,unit="t"){
+  const sc=normalizeSupplyCrop(crop);
+  let candidates=supplyData.filter(r=>Number(r.year)===Number(year)&&normalizeSupplyCrop(r.crop)===sc&&String(r.category).trim()===String(category).trim());
+  if(unit){
+    const filtered=candidates.filter(r=>String(r.unit).trim()===unit);
+    if(filtered.length)candidates=filtered;
+  }
+  if(!candidates.length)return null;
+  const vals=candidates.map(r=>Number(r.value)).filter(v=>!isNaN(v));
+  return vals.length?Math.max(...vals):null;
+}
+function supplyMetricRow(year,crop){
+  const sc=normalizeSupplyCrop(crop);
+  const production=supplyValue(year,sc,"production","t");
+  const imports=supplyValue(year,sc,"imports","t");
+  const exports=supplyValue(year,sc,"exports","t");
+  const totalUse=supplyValue(year,sc,"total_use","t");
+  const closingStock=supplyValue(year,sc,"closing_stock","t");
+  const feedUse=supplyValue(year,sc,"feed_use","t");
+  const foodUse=supplyValue(year,sc,"food_use","t");
+  const industrialUse=supplyValue(year,sc,"industrial_use","t");
+  const apparent=production!=null&&imports!=null&&exports!=null?production+imports-exports:null;
+  return {year:Number(year),crop:sc,production,imports,exports,totalUse,closingStock,feedUse,foodUse,industrialUse,apparent,
+    importDependency:apparent&&apparent>0&&imports!=null?imports/apparent:null,
+    exportRatio:production&&production>0&&exports!=null?exports/production:null,
+    stockSecurity:totalUse&&totalUse>0&&closingStock!=null?closingStock/totalUse:null,
+    feedRatio:production&&production>0&&feedUse!=null?feedUse/production:null,
+    foodRatio:production&&production>0&&foodUse!=null?foodUse/production:null,
+    industrialRatio:production&&production>0&&industrialUse!=null?industrialUse/production:null};
+}
+function supplyRowsForCrop(crop){
+  const sc=normalizeSupplyCrop(crop);
+  return availableSupplyYears(sc).map(y=>supplyMetricRow(y,sc)).filter(r=>r.production!=null||r.imports!=null||r.exports!=null||r.totalUse!=null);
+}
+function scoreImportSecurity(dep){if(dep==null||isNaN(dep))return 70;if(dep<=.05)return 100;if(dep<=.15)return 85;if(dep<=.30)return 65;if(dep<=.50)return 40;return 20}
+function scoreExportPosition(ratio){if(ratio==null||isNaN(ratio))return 60;if(ratio>=.5)return 100;if(ratio>=.25)return 85;if(ratio>=.1)return 70;return 50}
+function scoreStockSecurity(stock){if(stock==null||isNaN(stock))return 60;if(stock>=.35)return 100;if(stock>=.2)return 80;if(stock>=.1)return 60;return 35}
+function supplySecurityIndex(s,ag){if(!s||!ag)return null;const importScore=scoreImportSecurity(s.importDependency),exportScore=scoreExportPosition(s.exportRatio),stockScore=scoreStockSecurity(s.stockSecurity),risk=agriSecurityRisk(ag).score??50,riskScore=100-risk;return bounded((ag.food_security_index||60)*.35+importScore*.25+stockScore*.15+exportScore*.15+riskScore*.10,0,100)}
+function supplySecurityLabel(score){if(score==null)return"nincs adat";if(score>=80)return"stabil";if(score>=60)return"figyelendő";return"sérülékeny"}
+function dataQualityStatus(row,usedSupplyYear){
+  const selectedYear=Number(row.year);
+  const diff=usedSupplyYear==null?null:Math.abs(selectedYear-usedSupplyYear);
+  const consistency=diff===null?65:Math.max(70,100-diff*6);
+  const warning=diff===0?"🟢 teljes évazonosság":"🟡 részben eltérő adatév";
+  setBox("dataQualityText",`<strong>Adatforrás-állapot</strong><br><br>🌦 Klímaadat: <strong>${selectedYear}</strong><br>🌾 Termelési adat: <strong>${selectedYear}</strong><br>🚢 Supply balance adat: <strong>${usedSupplyYear??"nincs adat"}</strong><br><br><strong>Állapot:</strong> ${warning}<br><strong>Dashboard konzisztencia:</strong> ${fmt(consistency,0)}%<br><br>${supplyYearNote(selectedYear,usedSupplyYear)}`);
+}
+function supportedSupplyCrops(){
+  const agCrops=[...new Set(agriData.map(r=>r.crop))];
+  const supCrops=[...new Set(supplyData.map(r=>normalizeSupplyCrop(r.crop)))];
+  return agCrops.filter(c=>supCrops.includes(normalizeSupplyCrop(c)));
+}
+function vulnerabilityRows(selectedYear){
+  return supportedSupplyCrops().map(c=>{
+    const usedYear=resolveSupplyYear(selectedYear,c);
+    const ag=agriData.find(a=>a.crop===c&&Number(a.year)===Number(selectedYear));
+    if(!ag||usedYear==null)return null;
+    const s=supplyMetricRow(usedYear,c);
+    const idx=supplySecurityIndex(s,ag);
+    if(idx==null)return null;
+    return {crop:c,label:cropLabels[c]||c,usedYear,index:idx,vulnerability:100-idx};
+  }).filter(Boolean).sort((a,b)=>b.vulnerability-a.vulnerability);
+}
+function updateVulnerability(row){
+  const rows=vulnerabilityRows(row.year);
+  if(!rows.length){setBox("vulnerabilityText","Nincs elegendő adat a sérülékenységi rangsorhoz.");setBox("vulnerabilityChartInsight","Nincs elegendő adat.");return;}
+  const top=rows.slice(0,5);
+  setBox("vulnerabilityText",`<strong>Leginkább sérülékeny növények:</strong><br>${top.map(r=>`${r.label}: ${fmt(r.vulnerability,0)}/100 sérülékenység (supply év: ${r.usedYear})`).join("<br>")}<br><br><em>A rangsor az agrár ellátásbiztonsági index fordított értéke alapján készül.</em>`);
+  setBox("vulnerabilityChartInsight",`<strong>Értelmezés:</strong> a magasabb érték nagyobb sérülékenységet jelez. A supply balance adatév eltérhet a kiválasztott évtől.`);
+}
+function updateSupplySecurity(row){
+  if(!row)return;
+  const usedYear=resolveSupplyYear(row.year,row.crop);
+  dataQualityStatus(row,usedYear);
+  if(usedYear==null){
+    setBox("supplySecurityText",`Ehhez a növényhez nincs supply balance adat.<br><strong>Kiválasztott növény:</strong> ${(cropLabels[row.crop]||row.crop)}<br><strong>Keresett azonosító:</strong> ${normalizeSupplyCrop(row.crop)}`);
+    setBox("supplySecurityIndexText","Nincs számítható ellátásbiztonsági index.");
+    return;
+  }
+  const s=supplyMetricRow(usedYear,row.crop);
+  const idx=supplySecurityIndex(s,row);
+  const label=supplySecurityLabel(idx);
+  if(s.production==null&&s.imports==null&&s.exports==null&&s.totalUse==null){
+    setBox("supplySecurityText",`Ehhez a növényhez/évhez nincs használható supply balance mérlegadat.<br><br>${supplyYearNote(row.year,usedYear)}<br><strong>Kiválasztott növény:</strong> ${(cropLabels[row.crop]||row.crop)}<br><strong>Keresett azonosító:</strong> ${normalizeSupplyCrop(row.crop)}`);
+    setBox("supplySecurityIndexText","Nincs számítható ellátásbiztonsági index.");
+    return;
+  }
+  setBox("supplySecurityText",`<strong>${row.year} – ${(cropLabels[row.crop]||row.crop)} ellátási mérlege</strong><br><span class="badge ${Number(row.year)===Number(usedYear)?"good":"mid"}">${supplyYearNote(row.year,usedYear)}</span><br><br>Termelés: <strong>${fmt(s.production,0)} t</strong><br>Import: <strong>${fmt(s.imports,0)} t</strong><br>Export: <strong>${fmt(s.exports,0)} t</strong><br>Összes felhasználás: <strong>${fmt(s.totalUse,0)} t</strong><br>Zárókészlet: <strong>${fmt(s.closingStock,0)} t</strong><br><br>Importfüggőség: <strong>${pct(s.importDependency,1)}</strong><br>Exportarány: <strong>${pct(s.exportRatio,1)}</strong><br>Készletbiztonság: <strong>${pct(s.stockSecurity,1)}</strong><br>Takarmányarány: <strong>${pct(s.feedRatio,1)}</strong>`);
+  setBox("supplySecurityIndexText",`<strong>Agrár ellátásbiztonsági index:</strong> <strong>${fmt(idx,0)}/100</strong> (${label}).<br><br><strong>Adatév:</strong> ${supplyYearNote(row.year,usedYear)}<br><br>Az index a Food Security Indexet import-, export-, készlet- és agrárkockázati tényezőkkel egészíti ki.`);
+  setBox("tradeDependencyInsight",`<strong>Értelmezés:</strong> a diagram a <strong>${usedYear}</strong>. évi supply balance adatokat használja. Importfüggőség: ${pct(s.importDependency,1)}, exportarány: ${pct(s.exportRatio,1)}.`);
+  setBox("stockFeedInsight",`<strong>Értelmezés:</strong> a diagram a <strong>${usedYear}</strong>. évi supply balance adatokat használja. Készletbiztonság: ${pct(s.stockSecurity,1)}, takarmányarány: ${pct(s.feedRatio,1)}.`);
+  setBox("supplySecurityIndexInsight",`<strong>Értelmezés:</strong> az agrár ellátásbiztonsági index ${fmt(idx,0)}/100, besorolása: <strong>${label}</strong>. <strong>Supply balance adatév:</strong> ${usedYear}.`);
+  updateVulnerability(row);
+}
+
 function updateMetrics(){const r=selectedRow();if(!r)return;const rows=cropRows(r.crop),cName=cropLabels[r.crop]||r.crop,cr=corr(rows.map(x=>x.precip_mm),rows.map(x=>x.yield_t_ha)),tcr=corr(rows.map(x=>x.avg_temp_c),rows.map(x=>x.yield_t_ha));document.getElementById("yearValue").textContent=r.year;document.getElementById("dataStatus").textContent=`Adatok betöltve: ${agriData.length} sor`;document.getElementById("areaValue").textContent=fmt(r.area_ha)+" ha";document.getElementById("productionValue").textContent=fmt(r.production_t)+" t";document.getElementById("yieldValue").textContent=fmt(r.yield_t_ha,2)+" t/ha";document.getElementById("precipValue").textContent=fmt(r.precip_mm,1)+" mm";document.getElementById("tempValue").textContent=fmt(r.avg_temp_c,1)+" °C";document.getElementById("waterValue").textContent=fmt(r.water_balance_mm,1)+" mm";document.getElementById("selfValue").textContent=pct(r.self_sufficiency_ratio);document.getElementById("supportedValue").textContent=fmt(r.supported_population)+" fő";document.getElementById("climateScoreValue").textContent=fmt(r.climate_impact_score)+"/100";document.getElementById("foodSecurityValue").textContent=fmt(r.food_security_index)+"/100";document.getElementById("adaptationValue").textContent=fmt(r.adaptation_score,1)+" pont";
 const risk=riskSignal(r);
 if(document.getElementById("riskSignalValue"))document.getElementById("riskSignalValue").textContent=risk.label;
 const f2030=forecastForCrop(r.crop,2030),f2035=forecastForCrop(r.crop,2035);
 if(document.getElementById("forecast2030Value"))document.getElementById("forecast2030Value").textContent=fmt(f2030.food_security_index,0)+"/100";
-if(document.getElementById("forecast2035Value"))document.getElementById("forecast2035Value").textContent=fmt(f2035.food_security_index,0)+"/100";document.getElementById("corrValue").textContent=cr==null?"–":fmt(cr,2);document.getElementById("tempCorrValue").textContent=tcr==null?"–":fmt(tcr,2);document.getElementById("fsiLabel").textContent=r.food_security_label;document.getElementById("autoInsight").innerHTML=`<strong>${r.year} – ${cName}:</strong> csapadék ${fmt(r.precip_mm,1)} mm, átlaghőmérséklet ${fmt(r.avg_temp_c,1)} °C, vízmérleg ${fmt(r.water_balance_mm,1)} mm. Food Security Index: <strong>${fmt(r.food_security_index)}/100</strong> (${r.food_security_label}). Climate Adaptation: <strong>${fmt(r.adaptation_score,1)} pont</strong>.`;document.getElementById("aiReport").innerHTML=`<strong>AI Agrárjelentés – ${r.year}, ${cName}</strong><br><br><strong>Klíma:</strong> hőmérsékleti anomália ${fmt(r.temp_anomaly_c,2)} °C, vízmérleg ${fmt(r.water_balance_mm,1)} mm, Climate Impact ${fmt(r.climate_impact_score)}/100.<br><br><strong>Termelés:</strong> hozameltérés ${r.yield_loss_pct>0?"-":"+"}${fmt(Math.abs(r.yield_loss_pct),1)}% a referenciaátlaghoz képest.<br><br><strong>Ellátás:</strong> önellátási arány ${pct(r.self_sufficiency_ratio)}, eltartható népesség ${fmt(r.supported_population)} fő.<br><br><strong>Összegzés:</strong> Food Security Index ${fmt(r.food_security_index)}/100, besorolás: <strong>${r.food_security_label}</strong>.`;updateWinnerLoser();updateAdaptationTable();updateFoodSecurityExplain(r);updateChartInterpretations(r);updateStrategicAI(r);updateForecastText(r);updateSimulation(r);updateAgriSecurity(r)}
+if(document.getElementById("forecast2035Value"))document.getElementById("forecast2035Value").textContent=fmt(f2035.food_security_index,0)+"/100";document.getElementById("corrValue").textContent=cr==null?"–":fmt(cr,2);document.getElementById("tempCorrValue").textContent=tcr==null?"–":fmt(tcr,2);document.getElementById("fsiLabel").textContent=r.food_security_label;document.getElementById("autoInsight").innerHTML=`<strong>${r.year} – ${cName}:</strong> csapadék ${fmt(r.precip_mm,1)} mm, átlaghőmérséklet ${fmt(r.avg_temp_c,1)} °C, vízmérleg ${fmt(r.water_balance_mm,1)} mm. Food Security Index: <strong>${fmt(r.food_security_index)}/100</strong> (${r.food_security_label}). Climate Adaptation: <strong>${fmt(r.adaptation_score,1)} pont</strong>.`;document.getElementById("aiReport").innerHTML=`<strong>AI Agrárjelentés – ${r.year}, ${cName}</strong><br><br><strong>Klíma:</strong> hőmérsékleti anomália ${fmt(r.temp_anomaly_c,2)} °C, vízmérleg ${fmt(r.water_balance_mm,1)} mm, Climate Impact ${fmt(r.climate_impact_score)}/100.<br><br><strong>Termelés:</strong> hozameltérés ${r.yield_loss_pct>0?"-":"+"}${fmt(Math.abs(r.yield_loss_pct),1)}% a referenciaátlaghoz képest.<br><br><strong>Ellátás:</strong> önellátási arány ${pct(r.self_sufficiency_ratio)}, eltartható népesség ${fmt(r.supported_population)} fő.<br><br><strong>Összegzés:</strong> Food Security Index ${fmt(r.food_security_index)}/100, besorolás: <strong>${r.food_security_label}</strong>.`;updateWinnerLoser();updateAdaptationTable();updateFoodSecurityExplain(r);updateChartInterpretations(r);updateStrategicAI(r);updateForecastText(r);updateSimulation(r);updateAgriSecurity(r);updateSupplySecurity(r)}
 function destroy(id){if(charts[id])charts[id].destroy()}
 function line(id,labels,datasets,ytitle){destroy(id);charts[id]=new Chart(document.getElementById(id),{type:"line",data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{labels:{color:"#334155"}}},scales:{x:{ticks:{color:"#475569"}},y:{title:{display:true,text:ytitle,color:"#475569"},ticks:{color:"#475569"}}}}})}
 function scatter(id,data,label,xt,yt,color){destroy(id);charts[id]=new Chart(document.getElementById(id),{type:"scatter",data:{datasets:[{label,data,backgroundColor:color,borderColor:color}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:xt}},y:{title:{display:true,text:yt}}}}})}
@@ -547,9 +714,29 @@ if(sim){
   bar("simulationChart",["Jelenlegi","Szimulált"],[selectedRow().food_security_index,s.food_security_index],"Food Security Index","pont",["#2f855a","#dc2626"]);
 }
 const rr=riskRowsForCrop(c);
-line("agriSecurityChart",rr.map(r=>r.year),[{label:"Agrárbiztonsági kockázat",data:rr.map(r=>r.agri_security_risk),borderColor:"#dc2626",backgroundColor:"#dc2626",tension:.2}],"pont");line("waterNeedChart",rows.map(r=>r.year),[{label:"Tényleges csapadék",data:rows.map(r=>r.precip_mm),borderColor:"#2563eb"},{label:"Szükséges csapadék",data:rows.map(r=>r.water_need_mid_mm),borderColor:"#f59e0b"},{label:"Vízmérleg",data:rows.map(r=>r.water_balance_mm),borderColor:"#16a34a"}],"mm");updateAnimatedBar(Number(document.getElementById("yearRange").value))}
+line("agriSecurityChart",rr.map(r=>r.year),[{label:"Agrárbiztonsági kockázat",data:rr.map(r=>r.agri_security_risk),borderColor:"#dc2626",backgroundColor:"#dc2626",tension:.2}],"pont");
+const sr=supplyRowsForCrop(c);
+if(sr.length){
+  line("tradeDependencyChart",sr.map(r=>r.year),[
+    {label:"Importfüggőség (%)",data:sr.map(r=>r.importDependency!=null?r.importDependency*100:null),borderColor:"#dc2626",backgroundColor:"#dc2626",tension:.2},
+    {label:"Exportarány (%)",data:sr.map(r=>r.exportRatio!=null?r.exportRatio*100:null),borderColor:"#2563eb",backgroundColor:"#2563eb",tension:.2}
+  ],"%");
+  line("stockFeedChart",sr.map(r=>r.year),[
+    {label:"Készletbiztonság (%)",data:sr.map(r=>r.stockSecurity!=null?r.stockSecurity*100:null),borderColor:"#2f855a",backgroundColor:"#2f855a",tension:.2},
+    {label:"Takarmányarány (%)",data:sr.map(r=>r.feedRatio!=null?r.feedRatio*100:null),borderColor:"#ca8a04",backgroundColor:"#ca8a04",tension:.2}
+  ],"%");
+  const idxRows=sr.map(r=>{
+    const ag=agriData.find(a=>a.crop===c&&Number(a.year)===Number(document.getElementById("yearRange").value));
+    return{year:r.year,index:ag?supplySecurityIndex(r,ag):null};
+  });
+  line("supplySecurityIndexChart",idxRows.map(r=>r.year),[{label:"Agrár ellátásbiztonsági index",data:idxRows.map(r=>r.index),borderColor:"#7c3aed",backgroundColor:"#7c3aed",tension:.2}],"pont");
+}
+const vr=vulnerabilityRows(Number(document.getElementById("yearRange").value));
+if(vr.length){
+  bar("vulnerabilityChart",vr.map(r=>r.label),vr.map(r=>r.vulnerability),"Sérülékenység","pont",vr.map(r=>r.vulnerability>=40?"#dc2626":"#2f855a"));
+}line("waterNeedChart",rows.map(r=>r.year),[{label:"Tényleges csapadék",data:rows.map(r=>r.precip_mm),borderColor:"#2563eb"},{label:"Szükséges csapadék",data:rows.map(r=>r.water_need_mid_mm),borderColor:"#f59e0b"},{label:"Vízmérleg",data:rows.map(r=>r.water_balance_mm),borderColor:"#16a34a"}],"mm");updateAnimatedBar(Number(document.getElementById("yearRange").value))}
 function updateAll(){updateMetrics();updateCharts()}
-async function init(){try{agriData=await loadData();derive();fillSelectors()}catch(e){document.getElementById("dataStatus").textContent="Adatbetöltési hiba";err(e.message);return}document.getElementById("yearRange").addEventListener("input",updateAll);document.getElementById("cropSelect").addEventListener("change",updateAll);document.getElementById("multiCropSelect").addEventListener("change",updateCharts);document.getElementById("playBtn").addEventListener("click",play);document.getElementById("stopBtn").addEventListener("click",stop);document.getElementById("animMetric").addEventListener("change",()=>updateAnimatedBar(Number(document.getElementById("yearRange").value)));if(document.getElementById("simTempDelta"))document.getElementById("simTempDelta").addEventListener("change",updateAll);if(document.getElementById("simPrecipDelta"))document.getElementById("simPrecipDelta").addEventListener("change",updateAll);updateAll()}
+async function init(){try{agriData=await loadData();supplyData=await loadSupplyData();derive();fillSelectors()}catch(e){document.getElementById("dataStatus").textContent="Adatbetöltési hiba";err(e.message);return}document.getElementById("yearRange").addEventListener("input",updateAll);document.getElementById("cropSelect").addEventListener("change",updateAll);document.getElementById("multiCropSelect").addEventListener("change",updateCharts);document.getElementById("playBtn").addEventListener("click",play);document.getElementById("stopBtn").addEventListener("click",stop);document.getElementById("animMetric").addEventListener("change",()=>updateAnimatedBar(Number(document.getElementById("yearRange").value)));if(document.getElementById("simTempDelta"))document.getElementById("simTempDelta").addEventListener("change",updateAll);if(document.getElementById("simPrecipDelta"))document.getElementById("simPrecipDelta").addEventListener("change",updateAll);updateAll()}
 init();
 </script>
 </body>
