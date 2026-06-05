@@ -1,56 +1,31 @@
 ﻿source_file,sheet,reason,raw_label
-Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított növény,19.1.1.21. Production and use of main cereals
-Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,"Denomination | Cereals, total 2020 | Cereals, total 2021 | Cereals, total 2022 | Cereals, total 2023 | Cereals, total 2024 | Wheat 2020 | Wheat 2021 | Wheat 2022 | Wheat 2023 | Wheat 2024 | Maize 2020 | Maize 2021 | Maize 2022 | Maize 2023 | Maize 2024 | Rice 2020 | Rice 2021 | Rice 2022 | Rice 2023 | Rice 2024 | Barley 2020 | Barley 2021 | Barley 2022 | Barley 2023 | Barley 2024 | Rye 2020 | Rye 2021 | Rye 2022 | Rye 2023 | Rye 2024 | Oats 2020 | Oats 2021 | Oats 2022 | Oats 2023 | Oats 2024 | Triticale 2020 | Triticale 2021 | Triticale 2022 | Triticale 2023 | Triticale 2024"
-Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,"Average procurement price, HUF per tonne | – | – | – | – | – | … | …"
-Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,for human consumption and for industrial purposes | – | – | – | – | – | ... | ... | ... | ... | ... | ...
-Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,fodder | – | – | – | – | – | – | – | – | – | –
+Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,Characteristics of production
+Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,"Value of gross production, million HUF"
 Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,at current prices
 Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,at constant prices
 Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,"Consolidated balance sheet, tonne"
-Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,Initial stock
-Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,Total resource
-Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,Personal consumption | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,Industrial processing
-Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,Feed consumption | – | – | – | – | –
-Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,Loss
 Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,Of which:
 Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,External trade
 Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,tonne
 Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,million HUF
 Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,tonne
 Cereal_Supply_Balance.xlsx,19.1.1.21.,Nem azonosított kategória,million HUF
-Cereal_Supply_Balance.xlsx,Informations,Nem talált év oszlopokat,
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított növény,19.1.1.22. Production and use of main crops grown on arable land
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,"Average procurement price, HUF per tonne | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ..."
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,for human consumption | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,for industrial purposes | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,fodder | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,"for human consumption and for industrial purposes, fodder | – | – | ... | ... | – | – | – | – | – | ... | ... | ... | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –"
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,"Average market price, HUF per kilogram | .. | .. | .. | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | .. | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –"
+Cereal_Supply_Balance.xlsx,Informations,Nem talált fejlécsort,
+Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Characteristics of production
+Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,"Value of gross production, million HUF"
 Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,at current prices
 Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,at constant prices
 Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,"Producers' balance sheet, tonne"
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Initial stock | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Domestic purchases | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Total resource | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Processing | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Sales
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,"to buyers, to processors and for further sale | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –"
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,"for consumption (public, peasants' market, own shop) | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –"
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,within agriculture | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Intermediate consumption | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Loss | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
+Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,"to buyers, to processors and for further sale"
+Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,"for consumption (public, peasants' market, own shop)"
+Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,within agriculture
+Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Consumption from own production
+Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Gross production
 Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,"Consolidated balance sheet, tons"
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Initial stock | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Total resource | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Personal consumption | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Industrial processing | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Feed consumption | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Loss | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | –
 Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,Of which:
 Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,External trade
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,tonne | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,million HUF | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,tonne | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,million HUF | – | – | – | –
-Field_Crop_Supply_Balance.xlsx,Informations,Nem talált év oszlopokat,
+Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,tonne
+Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,million HUF
+Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,tonne
+Field_Crop_Supply_Balance.xlsx,19.1.1.22.,Nem azonosított kategória,million HUF
+Field_Crop_Supply_Balance.xlsx,Informations,Nem talált fejlécsort,
