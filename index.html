@@ -3,492 +3,244 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ellátásbiztonsági index – HU (Hub + Transport + Malmok)</title>
+  <meta name="description" content="Magyarország élelmiszer-ellátásbiztonsági, termelési és logisztikai térképe." />
+  <title>Magyar Élelmiszer-ellátásbiztonsági Monitor</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
     :root{
-      --bg:#07111f;
-      --panel:#0d1b2aee;
-      --panel-2:#102338f0;
-      --border:rgba(148, 163, 184, .18);
-      --text:#e6eef8;
-      --muted:#9db0c7;
-      --accent:#2d8cff;
-      --accent-2:#19c37d;
-      --danger:#ef4444;
-      --warning:#f59e0b;
-      --shadow:0 16px 48px rgba(0,0,0,.34);
-      --radius:18px;
-      --topbar-h:74px;
-      --left-w:400px;
-      --right-w:330px;
+      --bg:#06111f;
+      --bg-2:#0a1b2e;
+      --panel:rgba(8,24,42,.94);
+      --panel-2:rgba(12,34,56,.94);
+      --card:rgba(255,255,255,.045);
+      --card-hover:rgba(255,255,255,.075);
+      --border:rgba(131,181,222,.18);
+      --border-strong:rgba(91,178,235,.38);
+      --text:#edf6ff;
+      --muted:#9fb4c9;
+      --accent:#33a3e8;
+      --accent-2:#79d0ff;
+      --success:#4ade80;
+      --warning:#fbbf24;
+      --danger:#fb7185;
+      --shadow:0 18px 55px rgba(0,0,0,.42);
+      --radius:20px;
+      --topbar-h:92px;
+      --left-w:390px;
+      --right-w:310px;
     }
 
-    *{ box-sizing:border-box; }
-    html, body{ height:100%; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;
-      font-family: Arial, sans-serif;
-      background:var(--bg);
+      font-family:Inter,Segoe UI,Arial,sans-serif;
       color:var(--text);
+      background:
+        radial-gradient(circle at 8% 12%,rgba(51,163,232,.12),transparent 28%),
+        radial-gradient(circle at 88% 18%,rgba(39,110,168,.10),transparent 25%),
+        var(--bg);
       overflow:hidden;
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:0;
+      opacity:.18;
+      background-image:
+        linear-gradient(rgba(102,171,219,.05) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(102,171,219,.05) 1px,transparent 1px);
+      background-size:42px 42px;
     }
 
     #map{
       position:fixed;
       inset:0;
-      height:100vh;
       width:100vw;
+      height:100vh;
       z-index:1;
-      filter:saturate(1.03) contrast(1.01);
+      filter:saturate(.88) brightness(.82) contrast(1.07);
     }
 
-    .app-shell{
-      position:fixed;
-      inset:0;
-      z-index:1000;
-      pointer-events:none;
-    }
-
-    .topbar,
-    .panel,
-    .legend,
-    .map-caption,
-    .mobile-toggle{
-      pointer-events:auto;
-    }
+    .app-shell{position:fixed;inset:0;z-index:1000;pointer-events:none}
+    .topbar,.panel,.legend,.map-caption,.mobile-toggle{pointer-events:auto}
 
     .topbar{
       position:absolute;
-      top:12px;
-      left:12px;
-      right:12px;
+      top:12px;left:12px;right:12px;
       min-height:var(--topbar-h);
-      display:flex;
-      align-items:stretch;
-      justify-content:space-between;
-      gap:12px;
-      padding:14px 18px;
-      border:1px solid var(--border);
-      border-radius:22px;
-      background:linear-gradient(180deg, rgba(7,17,31,.92), rgba(13,27,42,.92));
-      box-shadow:var(--shadow);
-      backdrop-filter: blur(12px);
-    }
-
-    .topbar-title{
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      min-width:0;
-    }
-    .eyebrow{
-      font-size:11px;
-      font-weight:700;
-      letter-spacing:.14em;
-      color:#7dd3fc;
-      text-transform:uppercase;
-      margin-bottom:4px;
-    }
-    .topbar h1{
-      margin:0;
-      font-size:22px;
-      line-height:1.15;
-      font-weight:800;
-    }
-    .subtitle{
-      margin-top:4px;
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.3;
-    }
-
-    .metrics{
       display:grid;
-      grid-template-columns:repeat(4,minmax(110px,1fr));
-      gap:10px;
-      min-width:min(50vw,520px);
-      align-self:stretch;
-    }
-    .metric-card{
-      background:rgba(255,255,255,.03);
+      grid-template-columns:minmax(330px,1.15fr) minmax(420px,1fr) auto;
+      align-items:center;
+      gap:14px;
+      padding:14px 16px;
       border:1px solid var(--border);
-      border-radius:16px;
-      padding:10px 12px;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      min-width:0;
-    }
-    .metric-label{
-      font-size:11px;
-      color:var(--muted);
-      margin-bottom:4px;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-    }
-    .metric-value{
-      font-size:14px;
-      font-weight:700;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+      border-radius:24px;
+      background:linear-gradient(135deg,rgba(5,18,33,.97),rgba(12,35,58,.94));
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(16px);
     }
 
-    .panel,
-    .legend{
+    .brand{display:flex;align-items:center;gap:13px;min-width:0}
+    .brand-mark{
+      width:46px;height:46px;border-radius:14px;flex:0 0 46px;
+      display:grid;place-items:center;
+      border:1px solid rgba(121,208,255,.35);
+      background:linear-gradient(145deg,rgba(51,163,232,.25),rgba(8,34,57,.65));
+      box-shadow:inset 0 0 22px rgba(71,179,241,.12),0 0 24px rgba(51,163,232,.12);
+      font-size:23px;
+    }
+    .topbar-title{min-width:0}
+    .eyebrow{font-size:10px;font-weight:800;letter-spacing:.18em;color:#79d0ff;text-transform:uppercase;margin-bottom:4px}
+    .topbar h1{margin:0;font-size:21px;line-height:1.15;font-weight:850;letter-spacing:-.02em}
+    .subtitle{margin-top:4px;color:var(--muted);font-size:11.5px;line-height:1.35}
+    .badge{display:inline-flex;align-items:center;margin-left:7px;padding:3px 8px;border:1px solid rgba(74,222,128,.3);border-radius:999px;background:rgba(74,222,128,.09);color:#b9f6cc;font-size:9px;vertical-align:middle;letter-spacing:.08em}
+
+    .metrics{display:grid;grid-template-columns:repeat(4,minmax(96px,1fr));gap:8px;min-width:0}
+    .metric-card{min-width:0;padding:9px 10px;border:1px solid rgba(131,181,222,.13);border-radius:14px;background:rgba(255,255,255,.032)}
+    .metric-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+    .metric-value{font-size:12px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .top-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap}
+    .nav-btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      min-height:42px;padding:10px 14px;border-radius:13px;text-decoration:none;
+      font-size:12px;font-weight:800;letter-spacing:.01em;color:#fff;
+      border:1px solid rgba(121,208,255,.42);
+      background:linear-gradient(180deg,rgba(51,163,232,.95),rgba(29,111,170,.95));
+      box-shadow:0 10px 26px rgba(10,90,145,.25);
+      transition:.18s ease;
+    }
+    .nav-btn:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 14px 32px rgba(10,90,145,.34)}
+    .nav-btn.secondary{background:rgba(255,255,255,.045);border-color:var(--border);color:#dceeff;box-shadow:none}
+
+    .panel,.legend{
       position:absolute;
-      top:98px;
+      top:calc(12px + var(--topbar-h) + 12px);
       bottom:12px;
       border:1px solid var(--border);
       border-radius:22px;
-      background:linear-gradient(180deg, rgba(10,19,34,.92), rgba(13,27,42,.92));
+      background:linear-gradient(180deg,var(--panel),var(--panel-2));
       box-shadow:var(--shadow);
-      backdrop-filter: blur(12px);
+      backdrop-filter:blur(14px);
       overflow:auto;
       scrollbar-width:thin;
+      scrollbar-color:rgba(121,208,255,.35) transparent;
     }
-    .panel{
-      left:12px;
-      width:var(--left-w);
-      padding:18px;
-    }
-    .legend{
-      right:12px;
-      width:var(--right-w);
-      padding:18px;
-    }
+    .panel{left:12px;width:var(--left-w);padding:16px}
+    .legend{right:12px;width:var(--right-w);padding:16px}
 
-    .section{
-      background:rgba(255,255,255,.025);
-      border:1px solid rgba(255,255,255,.05);
-      border-radius:18px;
-      padding:14px;
-      margin-bottom:14px;
-    }
-    .section:last-child{ margin-bottom:0; }
-    .section-title{
-      margin:0 0 10px 0;
-      font-size:13px;
-      font-weight:800;
-      color:#dbeafe;
-      letter-spacing:.04em;
-      text-transform:uppercase;
-    }
+    .panel-header,.legend-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;padding:2px 2px 10px;border-bottom:1px solid rgba(131,181,222,.12)}
+    .panel-kicker{font-size:9px;color:#79d0ff;text-transform:uppercase;letter-spacing:.16em;font-weight:800}
+    .panel-heading{margin:4px 0 0;font-size:17px;line-height:1.2}
+    .panel-copy{margin-top:5px;font-size:11px;line-height:1.4;color:var(--muted)}
 
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:4px 10px;
-      border:1px solid rgba(125,211,252,.32);
-      border-radius:999px;
-      font-size:11px;
-      margin-left:8px;
-      background:rgba(125,211,252,.09);
-      color:#d9f3ff;
-      font-weight:700;
-    }
-    .badge::before{
-      content:"";
-      width:8px;
-      height:8px;
-      border-radius:50%;
-      background:#22c55e;
-      box-shadow:0 0 10px rgba(34,197,94,.7);
-    }
+    .section{background:var(--card);border:1px solid rgba(131,181,222,.11);border-radius:17px;padding:13px;margin-bottom:11px}
+    .section:hover{border-color:rgba(121,208,255,.2)}
+    .section:last-child{margin-bottom:0}
+    .section-title{margin:0 0 10px;font-size:11px;font-weight:850;color:#dceeff;letter-spacing:.09em;text-transform:uppercase}
+    .section-note{font-size:10.5px;line-height:1.45;color:var(--muted);margin:-3px 0 9px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}.row:first-child{margin-top:0}
+    label.block-label{display:block;width:100%;font-size:10px;font-weight:800;color:#cfe8fa;margin-bottom:5px;text-transform:uppercase;letter-spacing:.08em}
 
-    .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:6px; }
-    .row:first-child{ margin-top:0; }
+    select{width:100%;padding:10px 12px;font-size:12px;color:var(--text);background:rgba(2,12,23,.74);border:1px solid rgba(131,181,222,.22);border-radius:11px;outline:none}
+    select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(51,163,232,.12)}
 
-    label.block-label{
-      display:block;
-      width:100%;
-      font-size:12px;
-      font-weight:700;
-      color:#dbeafe;
-      margin-bottom:6px;
-      text-transform:uppercase;
-      letter-spacing:.04em;
-    }
+    .btn,.chip{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:7px 11px;border:1px solid rgba(131,181,222,.19);background:rgba(255,255,255,.025);color:var(--text);border-radius:11px;cursor:pointer;font-weight:750;font-size:11px;transition:.16s ease;user-select:none}
+    .btn:hover,.chip:hover{transform:translateY(-1px);border-color:rgba(121,208,255,.42);background:rgba(51,163,232,.08)}
+    .btn.active,.chip.on{background:linear-gradient(180deg,rgba(51,163,232,.28),rgba(34,118,179,.18));color:#fff;border-color:rgba(121,208,255,.62);box-shadow:inset 0 0 0 1px rgba(255,255,255,.03)}
+    .button-grid,.chip-grid{display:flex;flex-wrap:wrap;gap:7px}
 
-    select{
-      width:100%;
-      padding:10px 12px;
-      font-size:13px;
-      color:var(--text);
-      background:rgba(3,10,20,.75);
-      border:1px solid rgba(148,163,184,.25);
-      border-radius:12px;
-      outline:none;
-    }
+    .sliders{margin-top:0}.srow{display:flex;align-items:center;gap:8px;margin-top:8px}.srow:first-child{margin-top:0}.srow label{width:132px;flex:0 0 132px;font-weight:700;font-size:11px;color:#d7e8f6}.srow input[type="range"]{flex:1;accent-color:var(--accent)}.val{width:50px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums;color:#c9dbea}.small{font-size:10.5px;color:var(--muted);margin-top:7px;line-height:1.45}
+    .status-box{padding:10px 11px;background:rgba(0,0,0,.16);border:1px solid rgba(131,181,222,.1);border-radius:11px;margin-top:10px}
 
-    .btn,
-    .chip{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      min-height:36px;
-      padding:7px 12px;
-      border:1px solid rgba(148,163,184,.24);
-      background:rgba(255,255,255,.02);
-      color:var(--text);
-      border-radius:12px;
-      cursor:pointer;
-      font-weight:700;
-      font-size:12px;
-      transition:.18s ease;
-      user-select:none;
-    }
-    .btn:hover,
-    .chip:hover{
-      transform:translateY(-1px);
-      border-color:rgba(96,165,250,.4);
-      background:rgba(45,140,255,.08);
-    }
-    .btn.active,
-    .chip.on{
-      background:linear-gradient(180deg, rgba(45,140,255,.24), rgba(45,140,255,.15));
-      color:#fff;
-      border-color:rgba(96,165,250,.58);
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
-    }
+    .legend .item{display:flex;align-items:center;gap:9px;margin-top:7px;color:#dbe9f5;font-size:11px}.legend .item span:last-child{flex:1}.swatch{width:13px;height:13px;border-radius:4px;border:1px solid rgba(255,255,255,.19);flex:0 0 13px}
+    .ok{color:var(--success);font-weight:800}.warn{color:var(--warning);font-weight:800}.err{color:var(--danger);font-weight:800}
 
-    .button-grid,
-    .chip-grid{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-    }
+    .map-caption{position:absolute;left:calc(12px + var(--left-w) + 14px);right:calc(12px + var(--right-w) + 14px);bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 13px;border:1px solid var(--border);border-radius:16px;background:rgba(5,18,33,.86);color:var(--muted);font-size:10.5px;box-shadow:var(--shadow);backdrop-filter:blur(10px)}
+    .caption-highlight{color:#dceeff;font-weight:700}
 
-    .sliders{ margin-top:0; }
-    .srow{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      margin-top:9px;
-    }
-    .srow:first-child{ margin-top:0; }
-    .srow label{
-      width:138px;
-      flex:0 0 138px;
-      font-weight:700;
-      font-size:12px;
-      color:#d7e5f7;
-    }
-    .srow input[type="range"]{
-      flex:1;
-      accent-color:var(--accent);
-    }
-    .val{
-      width:58px;
-      text-align:right;
-      font-size:12px;
-      font-variant-numeric: tabular-nums;
-      color:#c7d8ea;
-    }
-    .small{
-      font-size:11px;
-      color:var(--muted);
-      margin-top:8px;
-      line-height:1.35;
-    }
+    .mobile-toggle{display:none;position:absolute;left:12px;top:calc(12px + var(--topbar-h) + 12px);z-index:1100;padding:10px 13px;border-radius:13px;border:1px solid var(--border-strong);background:rgba(5,18,33,.95);color:#fff;font-weight:800;box-shadow:var(--shadow)}
 
-    .status-box{
-      padding:10px 12px;
-      background:rgba(0,0,0,.16);
-      border:1px solid rgba(148,163,184,.14);
-      border-radius:12px;
-      margin-top:10px;
-    }
+    .leaflet-control-zoom a{background:#0b2035!important;color:#fff!important;border-bottom-color:rgba(255,255,255,.08)!important}
+    .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0b2035;color:#eef7ff}.leaflet-container a{color:#8fd4ff}.leaflet-control-attribution{background:rgba(5,18,33,.78)!important;color:#cfe2f2!important}.leaflet-control-attribution a{color:#8fd4ff!important}
 
-    .legend .item{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin-top:7px;
-      color:#dbe7f3;
-    }
-    .legend .item span:last-child{ flex:1; }
-    .swatch{
-      width:13px;
-      height:13px;
-      border-radius:4px;
-      border:1px solid rgba(255,255,255,.16);
-      flex:0 0 13px;
-    }
-
-    .ok{ color:#34d399; font-weight:700; }
-    .warn{ color:#fbbf24; font-weight:700; }
-    .err{ color:#f87171; font-weight:700; }
-
-    .map-caption{
-      position:absolute;
-      left:calc(12px + var(--left-w) + 16px);
-      right:calc(12px + var(--right-w) + 16px);
-      bottom:12px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      padding:10px 14px;
-      border:1px solid var(--border);
-      border-radius:18px;
-      background:rgba(7,17,31,.8);
-      color:var(--muted);
-      font-size:12px;
-      box-shadow:var(--shadow);
-      backdrop-filter: blur(10px);
-    }
-
-    .mobile-toggle{
-      display:none;
-      position:absolute;
-      left:12px;
-      top:98px;
-      z-index:1100;
-      padding:10px 14px;
-      border-radius:14px;
-      border:1px solid var(--border);
-      background:rgba(7,17,31,.92);
-      color:#fff;
-      font-weight:700;
-      box-shadow:var(--shadow);
-    }
-
-    .leaflet-control-zoom a{
-      background:#0d1b2a !important;
-      color:#fff !important;
-      border-bottom-color:rgba(255,255,255,.08) !important;
-    }
-    .leaflet-popup-content-wrapper,
-    .leaflet-popup-tip{
-      background:#0d1b2a;
-      color:#eef4fb;
-    }
-    .leaflet-container a{ color:#8ec5ff; }
-    .leaflet-control-attribution{
-      background:rgba(7,17,31,.74) !important;
-      color:#d7e5f7 !important;
-    }
-    .leaflet-control-attribution a{ color:#9ed0ff !important; }
-
-    @media (max-width: 1320px){
-      :root{ --left-w:360px; --right-w:300px; }
-      .metrics{ grid-template-columns:repeat(2,minmax(120px,1fr)); min-width:320px; }
-    }
-
-    @media (max-width: 1080px){
-      body{ overflow:auto; }
-      .topbar{
-        flex-direction:column;
-        min-height:auto;
-      }
-      .metrics{ min-width:0; width:100%; }
-      .panel{
-        width:min(420px, calc(100vw - 24px));
-        transform:translateX(-110%);
-        transition:transform .22s ease;
-      }
-      .panel.open{ transform:translateX(0); }
-      .legend{
-        top:auto;
-        left:12px;
-        right:12px;
-        width:auto;
-        bottom:12px;
-        max-height:34vh;
-      }
-      .map-caption{
-        left:12px;
-        right:12px;
-        bottom:calc(34vh + 24px);
-        flex-direction:column;
-        align-items:flex-start;
-      }
-      .mobile-toggle{ display:inline-flex; align-items:center; }
-    }
-
-    @media (max-width: 720px){
-      .topbar{ top:8px; left:8px; right:8px; padding:12px; }
-      .panel{ left:8px; top:124px; bottom:8px; width:calc(100vw - 16px); }
-      .legend{ left:8px; right:8px; bottom:8px; padding:14px; }
-      .mobile-toggle{ left:8px; top:124px; }
-      .metrics{ grid-template-columns:1fr 1fr; }
-      .topbar h1{ font-size:18px; }
-      .srow{ flex-wrap:wrap; }
-      .srow label{ width:100%; flex:1 0 100%; }
-      .val{ width:auto; min-width:52px; }
-    }
+    @media(max-width:1380px){:root{--left-w:355px;--right-w:286px}.topbar{grid-template-columns:minmax(300px,1fr) minmax(360px,.9fr) auto}.metrics{grid-template-columns:repeat(2,minmax(110px,1fr))}}
+    @media(max-width:1120px){body{overflow:auto}.topbar{grid-template-columns:1fr auto;min-height:auto}.metrics{grid-column:1/-1;grid-row:2}.panel{width:min(420px,calc(100vw - 24px));transform:translateX(-112%);transition:transform .22s ease;z-index:1200}.panel.open{transform:translateX(0)}.legend{top:auto;left:12px;right:12px;width:auto;bottom:12px;max-height:30vh}.map-caption{left:12px;right:12px;bottom:calc(30vh + 24px);flex-direction:column;align-items:flex-start}.mobile-toggle{display:inline-flex;align-items:center}.top-actions{align-self:start}}
+    @media(max-width:720px){:root{--topbar-h:162px}.topbar{top:8px;left:8px;right:8px;padding:12px;grid-template-columns:1fr}.brand-mark{width:40px;height:40px;flex-basis:40px}.topbar h1{font-size:17px}.subtitle{font-size:10.5px}.metrics{grid-template-columns:1fr 1fr}.top-actions{width:100%;justify-content:stretch}.nav-btn{flex:1;padding:9px 10px}.panel{left:8px;top:calc(8px + var(--topbar-h) + 8px);bottom:8px;width:calc(100vw - 16px)}.legend{left:8px;right:8px;bottom:8px;padding:13px}.mobile-toggle{left:8px;top:calc(8px + var(--topbar-h) + 8px)}.srow{flex-wrap:wrap}.srow label{width:100%;flex:1 0 100%}.val{width:auto;min-width:48px}.map-caption{display:none}}
   </style>
 </head>
 <body>
-
 <div id="map"></div>
 
 <div class="app-shell">
-  <div class="topbar">
-    <div class="topbar-title">
-      <div class="eyebrow">HU Dashboard</div>
-      <h1>Ellátásbiztonsági index <span class="badge">MAP-V24</span></h1>
-      <div class="subtitle">Megyei termelési, hozzáférési, logisztikai és tartalék mutatók egyesített térképe.</div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">◉</div>
+      <div class="topbar-title">
+        <div class="eyebrow">Törésvonalak · Food Supply Intelligence</div>
+        <h1>Magyar Élelmiszer-ellátásbiztonsági Monitor <span class="badge">MAP V24</span></h1>
+        <div class="subtitle">Megyei termelési, hozzáférési, feldolgozási és logisztikai ellenálló képesség.</div>
+      </div>
     </div>
 
     <div class="metrics">
-      <div class="metric-card">
-        <div class="metric-label">Szcenárió</div>
-        <div class="metric-value" id="scenarioInfoTop">Normál (45/35/20)</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Állapot</div>
-        <div class="metric-value" id="statusTop">Betöltés…</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Mutató</div>
-        <div class="metric-value" id="metricTop">Index</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Adatforrás</div>
-        <div class="metric-value" id="sourcesTop">Eurostat · KSH · baseline</div>
-      </div>
+      <div class="metric-card"><div class="metric-label">Szcenárió</div><div class="metric-value" id="scenarioInfoTop">Normál (45/35/20)</div></div>
+      <div class="metric-card"><div class="metric-label">Rendszerállapot</div><div class="metric-value" id="statusTop">Betöltés…</div></div>
+      <div class="metric-card"><div class="metric-label">Aktív mutató</div><div class="metric-value" id="metricTop">Index</div></div>
+      <div class="metric-card"><div class="metric-label">Adatforrás</div><div class="metric-value" id="sourcesTop">Eurostat · KSH · baseline</div></div>
     </div>
-  </div>
+
+    <nav class="top-actions" aria-label="Oldalnavigáció">
+      <a class="nav-btn secondary" href="https://toresvonalak.blog/" target="_blank" rel="noopener">Törésvonalak.blog</a>
+      <a class="nav-btn" href="agriculture.html">Agrár-klíma dashboard →</a>
+    </nav>
+  </header>
 
   <button class="mobile-toggle" id="mobileToggle">☰ Vezérlőpanel</button>
 
-  <div class="panel" id="controlPanel">
-    <div class="section">
-      <div class="section-title">Mutató és szcenárió</div>
-      <div class="row">
-        <label class="block-label"><b>Mutató</b></label>
-        <select id="metric">
-          <option value="index">Index</option>
-          <option value="prod">Termelés (kuk+búza)</option>
-          <option value="buffer">Tartalék (baseline)</option>
-          <option value="access">Hozzáférés (eff)</option>
-          <option value="access_pop">PopScore</option>
-          <option value="hub">HubScore (súlyozott)</option>
-          <option value="transport">TransportScore (vasút)</option>
-          <option value="logi">LogiScore (hub+vasút)</option>
-          <option value="station">StationScore</option>
-          <option value="rail">RailScore</option>
-        </select>
-      </div>
-
-      <div class="button-grid" style="margin-top:10px;">
-        <button class="btn active" id="btnNormal">Normál</button>
-        <button class="btn" id="btnDrought">Aszály</button>
-        <button class="btn" id="btnLogistics">Logisztika</button>
+  <aside class="panel" id="controlPanel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-kicker">Interaktív vezérlés</div>
+        <h2 class="panel-heading">Térképi helyzetkép</h2>
+        <div class="panel-copy">Válassz mutatót, szcenáriót és megjelenített infrastruktúra-rétegeket.</div>
       </div>
     </div>
 
     <div class="section">
-      <div class="section-title">Rétegek</div>
-      <div class="small" style="margin-top:0;margin-bottom:8px;">Pontok</div>
+      <div class="section-title">Mutató és szcenárió</div>
+      <div class="row">
+        <label class="block-label" for="metric">Megjelenített mutató</label>
+        <select id="metric">
+          <option value="index">Összesített ellátásbiztonsági index</option>
+          <option value="prod">Termelés (kukorica + búza)</option>
+          <option value="buffer">Tartalék (baseline)</option>
+          <option value="access">Effektív hozzáférés</option>
+          <option value="access_pop">Népességi hozzáférés</option>
+          <option value="hub">Feldolgozási és logisztikai csomópontok</option>
+          <option value="transport">Vasúti szállítási képesség</option>
+          <option value="logi">Összesített logisztikai képesség</option>
+          <option value="station">Vasútállomási lefedettség</option>
+          <option value="rail">Vasúthálózati lefedettség</option>
+        </select>
+      </div>
+      <div class="button-grid" style="margin-top:10px">
+        <button class="btn active" id="btnNormal">Normál</button>
+        <button class="btn" id="btnDrought">Aszály</button>
+        <button class="btn" id="btnLogistics">Logisztikai zavar</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Térképi rétegek</div>
+      <div class="section-note">Pontszerű infrastruktúra</div>
       <div class="chip-grid">
         <span class="chip on" id="chipProcessing">Feldolgozó</span>
         <span class="chip on" id="chipHub">Csomópont</span>
@@ -497,58 +249,25 @@
         <span class="chip" id="chipProcessingOSM">Feldolgozó (OSM)</span>
         <span class="chip on" id="chipMills">Lisztmalmok</span>
       </div>
-
-      <div class="small" style="margin-bottom:8px;">Vonalak</div>
-      <div class="chip-grid">
-        <span class="chip on" id="chipRail">Vasútvonal</span>
-      </div>
+      <div class="section-note" style="margin-top:11px">Vonalas infrastruktúra</div>
+      <div class="chip-grid"><span class="chip on" id="chipRail">Vasútvonal</span></div>
     </div>
 
     <div class="section">
-      <div class="section-title">Súlyok</div>
-      <div class="small" style="margin-top:0;"><b>Összeg 1-re normalizálva</b></div>
-
+      <div class="section-title">Indexsúlyok</div>
+      <div class="section-note"><b>Az összeg automatikusan 1-re normalizálódik.</b></div>
       <div class="sliders">
-        <div class="srow">
-          <label>Prod</label>
-          <input id="wProd" type="range" min="0" max="100" value="45" />
-          <div class="val" id="wProdVal">0.45</div>
-        </div>
-
-        <div class="srow">
-          <label>Access</label>
-          <input id="wAccess" type="range" min="0" max="100" value="35" />
-          <div class="val" id="wAccessVal">0.35</div>
-        </div>
-
-        <div class="srow">
-          <label>Buffer</label>
-          <input id="wBuffer" type="range" min="0" max="100" value="20" />
-          <div class="val" id="wBufferVal">0.20</div>
-        </div>
+        <div class="srow"><label>Termelés</label><input id="wProd" type="range" min="0" max="100" value="45"><div class="val" id="wProdVal">0.45</div></div>
+        <div class="srow"><label>Hozzáférés</label><input id="wAccess" type="range" min="0" max="100" value="35"><div class="val" id="wAccessVal">0.35</div></div>
+        <div class="srow"><label>Tartalék</label><input id="wBuffer" type="range" min="0" max="100" value="20"><div class="val" id="wBufferVal">0.20</div></div>
       </div>
     </div>
 
     <div class="section">
-      <div class="section-title">Logisztika – összetétel</div>
-      <div class="srow">
-        <label>Logi vs Pop (α)</label>
-        <input id="alpha" type="range" min="0" max="100" value="55" />
-        <div class="val" id="alphaVal">0.55</div>
-      </div>
-
-      <div class="srow">
-        <label>Hub vs Transport (γ)</label>
-        <input id="gamma" type="range" min="0" max="100" value="60" />
-        <div class="val" id="gammaVal">0.60</div>
-      </div>
-
-      <div class="srow">
-        <label>Station vs Rail (β)</label>
-        <input id="beta" type="range" min="0" max="100" value="60" />
-        <div class="val" id="betaVal">0.60</div>
-      </div>
-
+      <div class="section-title">Logisztikai összetétel</div>
+      <div class="srow"><label>Logisztika / népesség (α)</label><input id="alpha" type="range" min="0" max="100" value="55"><div class="val" id="alphaVal">0.55</div></div>
+      <div class="srow"><label>Csomópont / szállítás (γ)</label><input id="gamma" type="range" min="0" max="100" value="60"><div class="val" id="gammaVal">0.60</div></div>
+      <div class="srow"><label>Állomás / vasút (β)</label><input id="beta" type="range" min="0" max="100" value="60"><div class="val" id="betaVal">0.60</div></div>
       <div class="status-box">
         <div class="small" id="alphaHint">Aktív mód: Normál/Aszály → Access = PopScore</div>
         <div class="small" id="sumInfo">Súlyösszeg = 1.00</div>
@@ -557,25 +276,32 @@
         <div class="small" id="sources"></div>
       </div>
     </div>
-  </div>
+  </aside>
 
-  <div class="legend">
-    <div class="section" style="margin-bottom:12px;">
-      <div class="section-title">Jelmagyarázat</div>
-      <div class="small" style="margin-top:0;">Megye színezés</div>
-      <div class="item"><span class="swatch" style="background:#f7fbff"></span><span>0–19</span></div>
-      <div class="item"><span class="swatch" style="background:#deebf7"></span><span>20–39</span></div>
-      <div class="item"><span class="swatch" style="background:#c6dbef"></span><span>40–59</span></div>
-      <div class="item"><span class="swatch" style="background:#9ecae1"></span><span>60–79</span></div>
-      <div class="item"><span class="swatch" style="background:#6baed6"></span><span>80–100</span></div>
-      <div class="item"><span class="swatch" style="background:#dddddd"></span><span>Nincs adat</span></div>
+  <aside class="legend">
+    <div class="legend-header">
+      <div>
+        <div class="panel-kicker">Térképi kulcs</div>
+        <h2 class="panel-heading">Jelmagyarázat</h2>
+        <div class="panel-copy">Pontszámok, infrastruktúra és rögzített HubScore-súlyok.</div>
+      </div>
     </div>
 
-    <div class="section" style="margin-bottom:12px;">
-      <div class="section-title">Pontok és vonalak</div>
+    <div class="section">
+      <div class="section-title">Megyei pontszám</div>
+      <div class="item"><span class="swatch" style="background:#f7fbff"></span><span>0–19 · nagyon alacsony</span></div>
+      <div class="item"><span class="swatch" style="background:#deebf7"></span><span>20–39 · alacsony</span></div>
+      <div class="item"><span class="swatch" style="background:#c6dbef"></span><span>40–59 · közepes</span></div>
+      <div class="item"><span class="swatch" style="background:#9ecae1"></span><span>60–79 · magas</span></div>
+      <div class="item"><span class="swatch" style="background:#6baed6"></span><span>80–100 · nagyon magas</span></div>
+      <div class="item"><span class="swatch" style="background:#ddd"></span><span>Nincs adat</span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Infrastruktúra</div>
       <div class="item"><span class="swatch" style="background:#e74c3c"></span><span>Feldolgozó</span></div>
-      <div class="item"><span class="swatch" style="background:#3498db"></span><span>Csomópont</span></div>
-      <div class="item"><span class="swatch" style="background:#2ecc71"></span><span>Elosztás</span></div>
+      <div class="item"><span class="swatch" style="background:#3498db"></span><span>Logisztikai csomópont</span></div>
+      <div class="item"><span class="swatch" style="background:#2ecc71"></span><span>Elosztási pont</span></div>
       <div class="item"><span class="swatch" style="background:#8e44ad"></span><span>Lisztmalom</span></div>
       <div class="item"><span class="swatch" style="background:#e74c3c;border:1px dashed rgba(255,255,255,.45)"></span><span>Feldolgozó (OSM)</span></div>
       <div class="item"><span class="swatch" style="background:#0066ff"></span><span>Vasútállomás</span></div>
@@ -583,14 +309,19 @@
     </div>
 
     <div class="section">
-      <div class="section-title">HubScore súlyok</div>
-      <div id="hubWeightsLegend" style="margin-top:6px;"></div>
+      <div class="section-title">HubScore rögzített súlyai</div>
+      <div id="hubWeightsLegend" style="margin-top:6px"></div>
     </div>
-  </div>
+
+    <div class="section">
+      <div class="section-title">Értelmezés</div>
+      <div class="small" style="margin-top:0">A magasabb pontszám kedvezőbb relatív pozíciót jelent. Az index nem közvetlen készletszintet, hanem megyei ellenálló képességet és hozzáférési feltételeket jelez.</div>
+    </div>
+  </aside>
 
   <div class="map-caption">
-    <div>Regional operating picture: megyei ellátásbiztonsági helyzetkép, termelési és logisztikai rétegekkel.</div>
-    <div>Bal panel: vezérlés · Jobb panel: jelmagyarázat</div>
+    <div><span class="caption-highlight">Magyar élelmiszer-ellátásbiztonsági helyzetkép</span> · megyei termelési és logisztikai rétegek</div>
+    <div>Bal oldal: vezérlés · Jobb oldal: jelmagyarázat · Fejléc: dashboard</div>
   </div>
 </div>
 
@@ -1610,4 +1341,5 @@
 
 </body>
 </html>
+
 
