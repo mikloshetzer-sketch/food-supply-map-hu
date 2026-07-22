@@ -58,10 +58,11 @@
     .metric-label{font-size:9px;color:#b9daf0;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
     .metric-value{font-size:12px;font-weight:750;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-    .top-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap}
+    .top-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap;flex-wrap:wrap}
     .nav-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:9px 13px;border-radius:11px;text-decoration:none;font-size:11px;font-weight:800;color:var(--navy);border:1px solid #fff;background:#fff;box-shadow:0 7px 18px rgba(0,0,0,.14);transition:.16s ease}
     .nav-btn:hover{transform:translateY(-1px);background:#edf8ff}
     .nav-btn.secondary{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.28);color:#fff;box-shadow:none}
+    .nav-btn.dashboard-link{background:linear-gradient(180deg,#ffffff,#e8f5fc);border-color:#c6e2f1;color:var(--navy);box-shadow:0 7px 18px rgba(0,0,0,.16)}
 
     .panel,.legend{position:absolute;top:calc(12px + var(--topbar-h) + 12px);bottom:12px;border:1px solid var(--border);border-radius:18px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(12px);overflow:auto;scrollbar-width:thin;scrollbar-color:#91bfd9 transparent}
     .panel{left:12px;width:var(--left-w);padding:15px}.legend{right:12px;width:var(--right-w);padding:15px}
@@ -99,10 +100,10 @@
       .mobile-toggle,.mobile-legend-toggle{display:inline-flex;align-items:center}.map-caption{left:12px;right:12px}.app-shell.drawer-open::after{content:"";position:absolute;inset:0;background:rgba(5,29,49,.28);pointer-events:auto;z-index:1200}
     }
     @media(max-width:720px){
-      :root{--topbar-h:154px}.topbar{top:8px;left:8px;right:8px;padding:11px;grid-template-columns:1fr;border-radius:16px;gap:9px}.brand-mark{width:38px;height:38px;flex-basis:38px}.topbar h1{font-size:16px}.subtitle{display:none}.metrics{grid-template-columns:1fr 1fr;gap:6px}.metric-card{padding:7px 8px}.metric-label{font-size:8px}.metric-value{font-size:10.5px}.top-actions{width:100%;justify-content:stretch}.nav-btn{flex:1;min-height:34px;padding:7px 8px;font-size:10px}
+      :root{--topbar-h:190px}.topbar{top:8px;left:8px;right:8px;padding:11px;grid-template-columns:1fr;border-radius:16px;gap:9px}.brand-mark{width:38px;height:38px;flex-basis:38px}.topbar h1{font-size:16px}.subtitle{display:none}.metrics{grid-template-columns:1fr 1fr;gap:6px}.metric-card{padding:7px 8px}.metric-label{font-size:8px}.metric-value{font-size:10.5px}.top-actions{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px;white-space:normal}.nav-btn{min-height:34px;padding:7px 8px;font-size:10px}.nav-btn.dashboard-link{grid-column:1/-1}
       .panel,.legend{top:calc(8px + var(--topbar-h) + 50px);bottom:8px;width:calc(100vw - 16px);padding:13px;border-radius:15px}.panel{left:8px}.legend{right:8px}.mobile-toggle,.mobile-legend-toggle{top:calc(8px + var(--topbar-h) + 8px);padding:9px 11px;font-size:11px}.mobile-toggle{left:8px}.mobile-legend-toggle{right:8px}.srow{flex-wrap:wrap}.srow label{width:100%;flex:1 0 100%}.val{width:auto;min-width:48px}.map-caption{display:none}
     }
-    @media(max-width:420px){:root{--topbar-h:164px}.topbar h1{font-size:14.5px}.eyebrow{font-size:8px}.top-actions{gap:6px}.nav-btn{font-size:9px}.panel-heading{font-size:15px}}
+    @media(max-width:420px){:root{--topbar-h:202px}.topbar h1{font-size:14.5px}.eyebrow{font-size:8px}.top-actions{gap:6px}.nav-btn{font-size:9px}.panel-heading{font-size:15px}}
   </style>
 
 </head>
@@ -129,6 +130,7 @@
 
     <nav class="top-actions" aria-label="Oldalnavigáció">
       <a class="nav-btn secondary" href="https://toresvonalak.blog/" target="_blank" rel="noopener">Törésvonalak.blog</a>
+      <a class="nav-btn dashboard-link" href="food-supply-dashboard.html">Ellátásbiztonsági dashboard →</a>
       <a class="nav-btn" href="agriculture.html">Agrár-klíma dashboard →</a>
     </nav>
   </header>
@@ -252,7 +254,7 @@
 
   <div class="map-caption">
     <div><span class="caption-highlight">Magyar élelmiszer-ellátásbiztonsági helyzetkép</span> · megyei termelési és logisztikai rétegek</div>
-    <div>Bal oldal: vezérlés · Jobb oldal: jelmagyarázat · Fejléc: dashboard</div>
+    <div>Bal oldal: vezérlés · Jobb oldal: jelmagyarázat · Fejléc: elemző dashboard és agrár-klíma modul</div>
   </div>
 </div>
 
